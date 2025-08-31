@@ -1,15 +1,13 @@
-from dotenv import load_dotenv
-load_dotenv() # Loading All Environment variables!
-
 import streamlit as st
 import os
 import sqlite3
-
 import google.generativeai as genai
+from rateguard import rate_limit
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 # Function to load google gemin Model and Provide sql query as response
+@rate_limit(rpm=2)
 def get_gemini_response(question,prompt):
     model = genai.GenerativeModel("gemini-2.0-flash")
     response = model.generate_content([prompt[0],question])
@@ -33,6 +31,12 @@ prompt = [
     You are an expenses-to-SQL assistant for a simple personal financial tracker.
     Your only job is to convert a single natural-language user input into one safe,
     parameterized SQL statement (or to ask for clarification).
+
+    SAFETY RULE:
+    - If the user input is unrelated to personal expenses OR contains spam, harmful,
+      violent, illegal, or abusive content, then DO NOT generate SQL.
+      Instead, respond ONLY with this exact message:
+      "Please don’t spam or misuse the app."
 
     VERY IMPORTANT RULES:
     - Use this schema exactly:
@@ -137,6 +141,16 @@ st.write("")
 # --- INPUT ---
 question = st.text_input("💬 Enter your query or expense:", placeholder="e.g. I spent 250 on groceries yesterday using UPI")
 submit = st.button("🚀 Run")
+
+def is_spam_input(user_input: str) -> bool:
+    # List of blocked words/phrases (expand as needed)
+    spam_keywords = [
+        "rob", "hack", "steal", "terrorist", "attack",
+        "kill", "murder", "drugs", "bomb", "scam", "fraud"
+    ]
+    user_input_lower = user_input.lower()
+    
+    return any(word in user_input_lower for word in spam_keywords)
 
 # If Submit is clicked!
 if submit:
