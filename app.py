@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 import sqlite3
-import google.generativeai as genai
+import google.generativeai as genai 
 from rateguard import rate_limit
 
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
