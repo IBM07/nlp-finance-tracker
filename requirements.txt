@@ -1,4 +1,8 @@
 streamlit
-google-generativeai
+groq
 python-dotenv
-rateguard 
+rateguard
+fastapi
+uvicorn
+requests 
+pandas

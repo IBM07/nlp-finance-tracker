@@ -1,75 +1,20 @@
+# ==========================================
+# AI FINANCE TRACKER - FRONTEND (CLIENT)
+# ==========================================
 import streamlit as st
-import os
-import sqlite3
-import google.generativeai as genai 
-from rateguard import rate_limit
+import requests
+import pandas as pd
+import json
 
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-
-# Function to load google gemin Model and Provide sql query as response
-@rate_limit(rpm=2)
-def get_gemini_response(question,prompt):
-    model = genai.GenerativeModel("gemini-2.0-flash")
-    response = model.generate_content([prompt[0],question])
-    return response.text
-
-## Function to retrieve query from sql database
-def read_sql_query(sql,db):
-    conn = sqlite3.connect(db)
-    cur = conn.cursor()
-    print("DEBUG QUERY:", sql)
-    cur.execute(sql)
-    rows = cur.fetchall()
-    conn.commit()
-    conn.close()
-    for row in rows:
-        print(row)
-    return rows 
-
-prompt = [
-    """
-    You are an expenses-to-SQL assistant for a simple personal financial tracker.
-    Your only job is to convert a single natural-language user input into one safe,
-    parameterized SQL statement (or to ask for clarification).
-
-    SAFETY RULE:
-    - If the user input is unrelated to personal expenses OR contains spam, harmful,
-      violent, illegal, or abusive content, then DO NOT generate SQL.
-      Instead, respond ONLY with this exact message:
-      "Please don’t spam or misuse the app."
-
-    VERY IMPORTANT RULES:
-    - Use this schema exactly:
-      CREATE TABLE Finance(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        purchased VARCHAR NOT NULL,
-        categorization TEXT NOT NULL,
-        amount REAL NOT NULL,
-        date TEXT NOT NULL,
-        payment_type TEXT
-      );
-    - The table name is Finance (NOT transactions, NOT Parameters).
-    - The only valid columns are: purchased, categorization, amount, date, payment_type.
-    - Do not invent new tables or columns.
-    - Do not output ```sql or ``` fences.
-    - Output ONLY the SQL statement.
-
-    If the user describes an expense, generate an INSERT into Finance with:
-    - categorization -> Always normalize categorization to one of these categories--->['Food', 'Transport', 'Utilities', 'Shopping', 'Entertainment', 'Healthcare', 'Other']. 
-    - purchased -> Name of the item purchased
-    - amount → numeric value
-    - date → YYYY-MM-DD (default year 2025 if omitted)
-    - payment_type → given or NULL 
-
-    If the user asks for data retrieval, generate a SELECT statement on Finance.
-    """
-]
-
-import streamlit as st
+# --- CONFIGURATION ---
+BASE_URL = "http://localhost:8000"
+API_Recent = f"{BASE_URL}/recent"
+API_Analytics = f"{BASE_URL}/analytics"
+API_Query = f"{BASE_URL}/query"
 
 # --- PAGE CONFIG ---
 st.set_page_config(
-    page_title="💰 AI-Powered Expense Tracker",
+    page_title="💰 AI Finance Tracker",
     page_icon="💸",
     layout="wide"
 )
@@ -77,88 +22,153 @@ st.set_page_config(
 # --- CUSTOM CSS ---
 st.markdown("""
     <style>
-    /* Background Gradient */
+    /* Global Styles */
     .stApp {
         background: linear-gradient(135deg, #1f1c2c, #928dab);
         color: white;
         font-family: 'Trebuchet MS', sans-serif;
     }
-
-    /* Title Glow Effect */
-    .title {
-        font-size: 3rem;
+    
+    /* Hero Header */
+    .hero-title {
+        font-size: 3.5rem;
         font-weight: bold;
         color: #fff;
         text-align: center;
-        text-shadow: 0 0 10px #00ffe7, 0 0 20px #00ffe7, 0 0 30px #00ffe7;
-        animation: glow 2s infinite alternate;
+        text-shadow: 0 0 10px #00ffe7, 0 0 20px #00ffe7;
+        margin-bottom: 0px;
     }
-    @keyframes glow {
-        from { text-shadow: 0 0 5px #00ffe7; }
-        to { text-shadow: 0 0 20px #00ffe7, 0 0 40px #00ffe7; }
-    }
-
-    /* Subheader Typewriter Animation */
-    .typewriter {
-        overflow: hidden;
-        border-right: .15em solid orange;
-        white-space: nowrap;
-        margin: 0 auto;
-        letter-spacing: .10em;
-        animation:
-          typing 3.5s steps(40, end),
-          blink-caret .75s step-end infinite;
-        font-size: 1.3rem;
+    .hero-subtitle {
+        font-size: 1.2rem;
         color: #FFD700;
         text-align: center;
-    }
-    @keyframes typing {
-      from { width: 0 }
-      to { width: 100% }
-    }
-    @keyframes blink-caret {
-      from, to { border-color: transparent }
-      50% { border-color: orange }
+        margin-top: -10px;
+        margin-bottom: 30px;
+        font-style: italic;
     }
 
-    /* Fancy Cards */
-    .result-card {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 15px;
-        padding: 15px;
-        margin: 10px 0;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    /* Cards & Metrics */
+    div[data-testid="stMetricValue"] {
+        font-size: 2.5rem;
+        color: #00ffe7;
+    }
+    
+    /* Input Field */
+    .stTextInput > div > div > input {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid #00ffe7;
+        border-radius: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER ---
-st.markdown("<div class='title'>💰 AI-Powered Expense Tracker</div>", unsafe_allow_html=True)
-st.markdown("<div class='typewriter'>Talk to your expenses in plain English → Get instant SQL-powered insights</div>", unsafe_allow_html=True)
+# --- HELPER FUNCTIONS ---
+def fetch_recent():
+    try:
+        res = requests.get(API_Recent)
+        if res.status_code == 200:
+            return res.json().get("data", [])
+    except Exception as e:
+        st.error(f"Error fetching recent activity: {e}")
+    return []
 
-st.write("")
+def fetch_analytics():
+    try:
+        res = requests.get(API_Analytics)
+        if res.status_code == 200:
+            return res.json().get("data", [])
+    except Exception as e:
+        st.error(f"Error fetching analytics: {e}")
+    return []
 
-# --- INPUT ---
-question = st.text_input("💬 Enter your query or expense:", placeholder="e.g. I spent 250 on groceries yesterday using UPI")
-submit = st.button("🚀 Run")
+def handle_query():
+    query_text = st.session_state.user_query
+    if query_text:
+        try:
+            with st.spinner("Processing with Groq LPU™..."):
+                res = requests.post(API_Query, json={"question": query_text})
+                if res.status_code == 200:
+                    response_data = res.json()
+                    st.session_state.last_response = response_data
+                    st.success("Processed Successfully!")
+                else:
+                     st.error(f"Error: {res.status_code}")
+        except Exception as e:
+            st.error(f"Connection Error: {e}")
 
-def is_spam_input(user_input: str) -> bool:
-    # List of blocked words/phrases (expand as needed)
-    spam_keywords = [
-        "rob", "hack", "steal", "terrorist", "attack",
-        "kill", "murder", "drugs", "bomb", "scam", "fraud"
-    ]
-    user_input_lower = user_input.lower()
-    
-    return any(word in user_input_lower for word in spam_keywords)
+# --- INITIALIZATION ---
+if 'last_response' not in st.session_state:
+    st.session_state.last_response = None
 
-# If Submit is clicked!
-if submit:
-    with st.container():
-        st.markdown("<div class='result-card'>✅ Expense successfully added to database!</div>", unsafe_allow_html=True)
-    response = get_gemini_response(question,prompt)
-    print(response)
-    data = read_sql_query(response, "student.db")
-    for row in data:
-        print(row)
-        st.header(row)
+# Load data on startup logic - (Streamlit re-runs script on interaction, so we fetch fresh data to keep dashboard updated)
+recent_data = fetch_recent()
+analytics_data = fetch_analytics()
+
+# --- SECTION A: HERO HEADER ---
+st.markdown("<div class='hero-title'>💰 AI Finance Tracker</div>", unsafe_allow_html=True)
+st.markdown("<div class='hero-subtitle'>Powered by Groq LPU™</div>", unsafe_allow_html=True)
+
+# --- SECTION B: THE DASHBOARD (Top Row) ---
+col1, col2 = st.columns([1, 2])
+
+with col1:
+    st.markdown("### 📊 Metrics")
+    total_spend = 0.0
+    if analytics_data:
+        total_spend = sum(item['total'] for item in analytics_data)
+    st.metric(label="Total Expenses (All Time)", value=f"${total_spend:,.2f}")
+
+with col2:
+    st.markdown("### 🍩 Spending Breakdown")
+    if analytics_data:
+        df_analytics = pd.DataFrame(analytics_data)
+        st.bar_chart(df_analytics, x="category", y="total", color="#00ffe7")
+    else:
+        st.info("No analytics data available yet.")
+
+st.markdown("---")
+
+# --- SECTION C: RECENT ACTIVITY (Middle Row) ---
+st.markdown("### 🕒 Recent Activity")
+if recent_data:
+    df_recent = pd.DataFrame(recent_data)
+    # Reorder/Rename columns for display if needed
+    st.dataframe(df_recent, use_container_width=True, hide_index=True)
+else:
+    st.info("No recent transactions found.")
+
+st.markdown("---")
+
+# --- SECTION D: ACTION CENTER (Bottom Row) ---
+st.markdown("### 💬 Action Center")
+
+col_input, col_history = st.columns([2, 1])
+
+with col_input:
+    st.text_input(
+        "Talk to your finance tracker...", 
+        placeholder="e.g. 'I spent $20 on Coffee' or 'Show all food expenses'", 
+        key="user_query", 
+        on_change=handle_query
+    )
+    st.caption("Press Enter to send.")
+
+with col_history:
+    st.markdown("**Last AI Response:**")
+    if st.session_state.last_response:
+        msg = st.session_state.last_response.get("message", "")
+        row_count = st.session_state.last_response.get("row_count", 0)
+        
+        if "success" in msg.lower() or "added" in msg.lower():
+             st.success(f"{msg}")
+        elif row_count > 0:
+             st.info(f"{msg}")
+        else:
+             st.warning(f"{msg}")
+        
+        # If it was a SELECT query, we might want to show that separate data too? 
+        # The requirements said "History: Show the last AI response (Success/Fail messages)." 
+        # so keeping it simple.
+    else:
+        st.write("waiting for input...")
