@@ -1,0 +1,5 @@
+1)Always add comments wherever required so that the code becomes really easy to understand and becomes production ready and any person can then understand and make changes to the code.
+2)Always give dynamic rollback steps. Delete previous steps ONLY if user confirms success. Add new specific steps when implementing new features.
+3)Always add try except blocks wherever required so that the code becomes really easy to understand and becomes production ready and any person can then understand and make changes to the code.
+4)Always add logging wherever required so that the code becomes really easy to understand and becomes production ready and any person can then understand and make changes to the code.
+5)Always ensure you do the things 100% accurately and correctly.

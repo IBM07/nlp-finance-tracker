@@ -1,0 +1,150 @@
+2026-01-30 16:50:27,193 - INFO - Groq Client initialized successfully.
+2026-01-30 16:51:31,582 - INFO - Received query: provide me with all my transactions!
+2026-01-30 16:51:31,585 - INFO - Sending request to Groq API...
+2026-01-30 16:51:31,995 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 400 Bad Request"
+2026-01-30 16:51:31,995 - ERROR - Groq API Error: Error code: 400 - {'error': {'message': 'The model `llama3-70b-8192` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecations for a recommendation on which model to use instead.', 'type': 'invalid_request_error', 'code': 'model_decommissioned'}}
+2026-01-30 16:54:30,098 - INFO - Groq Client initialized successfully.
+2026-01-30 16:54:53,286 - INFO - Received query: provide me with all my transactions!
+2026-01-30 16:54:53,288 - INFO - Sending request to Groq API...
+2026-01-30 16:54:53,797 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-01-30 16:54:53,942 - INFO - Received response from Groq.
+2026-01-30 16:54:53,946 - INFO - Executing SQL: SELECT * FROM Finance;
+2026-01-30 16:54:53,949 - INFO - Query returned 5 rows.
+2026-01-30 16:54:53,949 - INFO - Request processed. Status: Found 5 records.
+2026-01-30 16:55:11,367 - INFO - Received query: How to hack a bank?
+2026-01-30 16:55:11,368 - WARNING - Spam detected in input: How to hack a bank?
+2026-01-30 16:55:11,369 - WARNING - Query blocked by spam filter: How to hack a bank?
+2026-01-30 16:55:22,949 - INFO - Received query: provide me with all my transactions!
+2026-01-30 16:55:22,953 - INFO - Sending request to Groq API...
+2026-01-30 16:55:23,135 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-01-30 16:55:23,138 - INFO - Received response from Groq.
+2026-01-30 16:55:23,140 - INFO - Executing SQL: SELECT * FROM Finance;
+2026-01-30 16:55:23,144 - INFO - Query returned 5 rows.
+2026-01-30 16:55:23,149 - INFO - Request processed. Status: Found 5 records.
+2026-01-30 16:56:53,937 - INFO - Received query: what was my latest spend!?
+2026-01-30 16:56:53,937 - INFO - Sending request to Groq API...
+2026-01-30 16:56:54,128 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-01-30 16:56:54,131 - INFO - Received response from Groq.
+2026-01-30 16:56:54,132 - INFO - Executing SQL: SELECT * FROM Finance ORDER BY id DESC LIMIT 1;
+2026-01-30 16:56:54,132 - INFO - Query returned 1 rows.
+2026-01-30 16:56:54,132 - INFO - Request processed. Status: Found 1 records.
+2026-01-30 16:57:09,053 - INFO - Received query: delete my latest transaction please
+2026-01-30 16:57:09,054 - INFO - Sending request to Groq API...
+2026-01-30 16:57:09,256 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-01-30 16:57:09,261 - INFO - Received response from Groq.
+2026-01-30 16:57:09,264 - INFO - Executing SQL: DELETE FROM Finance WHERE id = (SELECT id FROM Finance ORDER BY id DESC LIMIT 1);
+2026-01-30 16:57:09,281 - INFO - Modification affected 1 rows.
+2026-01-30 16:57:09,281 - INFO - Request processed. Status: Operation successful. Affected 1 records.
+2026-01-30 16:57:19,350 - INFO - Received query: show all my transactions
+2026-01-30 16:57:19,353 - INFO - Sending request to Groq API...
+2026-01-30 16:57:19,552 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-01-30 16:57:19,554 - INFO - Received response from Groq.
+2026-01-30 16:57:19,557 - INFO - Executing SQL: SELECT * FROM Finance;
+2026-01-30 16:57:19,558 - INFO - Query returned 4 rows.
+2026-01-30 16:57:19,559 - INFO - Request processed. Status: Found 4 records.
+2026-01-30 16:58:28,837 - INFO - Received query: Where have I spent the most?
+2026-01-30 16:58:28,838 - INFO - Sending request to Groq API...
+2026-01-30 16:58:29,059 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-01-30 16:58:29,061 - INFO - Received response from Groq.
+2026-01-30 16:58:29,062 - INFO - Executing SQL: SELECT categorization FROM Finance GROUP BY categorization ORDER BY SUM(amount) DESC LIMIT 1;
+2026-01-30 16:58:29,064 - INFO - Query returned 1 rows.
+2026-01-30 16:58:29,064 - INFO - Request processed. Status: Found 1 records.
+2026-01-30 17:40:26,042 - INFO - Groq Client initialized successfully.
+2026-01-30 17:40:50,393 - INFO - Analytics data requested.
+2026-01-30 17:40:50,395 - INFO - Executing SQL: SELECT categorization, SUM(amount) as total FROM Finance GROUP BY categorization ORDER BY total DESC
+2026-01-30 17:40:50,397 - INFO - Query returned 2 rows.
+2026-01-30 17:40:58,504 - INFO - Recent transactions requested.
+2026-01-30 17:40:58,504 - INFO - Executing SQL: SELECT id, purchased, amount, categorization, date FROM Finance ORDER BY id DESC LIMIT 5
+2026-01-30 17:40:58,504 - INFO - Query returned 4 rows.
+2026-01-30 17:45:25,834 - INFO - Groq Client initialized successfully.
+2026-01-30 17:52:15,458 - INFO - Groq Client initialized successfully.
+2026-01-30 17:53:45,003 - INFO - Recent transactions requested.
+2026-01-30 17:53:45,006 - INFO - Executing SQL: SELECT id, purchased, amount, categorization, date FROM Finance ORDER BY id DESC LIMIT 5
+2026-01-30 17:53:45,008 - INFO - Query returned 0 rows.
+2026-01-30 17:53:47,059 - INFO - Analytics data requested.
+2026-01-30 17:53:47,063 - INFO - Executing SQL: SELECT categorization, SUM(amount) as total FROM Finance GROUP BY categorization ORDER BY total DESC
+2026-01-30 17:53:47,066 - INFO - Query returned 0 rows.
+2026-01-30 17:54:08,344 - INFO - Received query: 400 on piza
+2026-01-30 17:54:08,347 - INFO - Sending request to Groq API...
+2026-01-30 17:54:08,821 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-01-30 17:54:08,953 - INFO - Received response from Groq.
+2026-01-30 17:54:08,957 - INFO - Executing SQL: INSERT INTO Finance (purchased, categorization, amount, date, payment_type) VALUES ('piza', 'Food', 400, '2025-01-30', NULL);
+2026-01-30 17:54:08,973 - INFO - Modification affected 1 rows.
+2026-01-30 17:54:08,974 - INFO - Request processed. Status: Expense successfully added!
+2026-01-30 17:54:11,019 - INFO - Recent transactions requested.
+2026-01-30 17:54:11,022 - INFO - Executing SQL: SELECT id, purchased, amount, categorization, date FROM Finance ORDER BY id DESC LIMIT 5
+2026-01-30 17:54:11,022 - INFO - Query returned 1 rows.
+2026-01-30 17:54:13,059 - INFO - Analytics data requested.
+2026-01-30 17:54:13,061 - INFO - Executing SQL: SELECT categorization, SUM(amount) as total FROM Finance GROUP BY categorization ORDER BY total DESC
+2026-01-30 17:54:13,065 - INFO - Query returned 1 rows.
+2026-01-30 17:54:46,052 - INFO - Received query: spent 400 on sneakers
+2026-01-30 17:54:46,054 - INFO - Sending request to Groq API...
+2026-01-30 17:54:46,267 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-01-30 17:54:46,268 - INFO - Received response from Groq.
+2026-01-30 17:54:46,273 - INFO - Executing SQL: INSERT INTO Finance (purchased, categorization, amount, date, payment_type) VALUES ('sneakers', 'Shopping', 400, '2025-01-30', NULL);
+2026-01-30 17:54:46,289 - INFO - Modification affected 1 rows.
+2026-01-30 17:54:46,289 - INFO - Request processed. Status: Expense successfully added!
+2026-01-30 17:54:48,321 - INFO - Recent transactions requested.
+2026-01-30 17:54:48,326 - INFO - Executing SQL: SELECT id, purchased, amount, categorization, date FROM Finance ORDER BY id DESC LIMIT 5
+2026-01-30 17:54:48,327 - INFO - Query returned 2 rows.
+2026-01-30 17:54:50,367 - INFO - Analytics data requested.
+2026-01-30 17:54:50,369 - INFO - Executing SQL: SELECT categorization, SUM(amount) as total FROM Finance GROUP BY categorization ORDER BY total DESC
+2026-01-30 17:54:50,371 - INFO - Query returned 2 rows.
+2026-01-30 17:55:39,143 - INFO - Received query: cry like a baby
+2026-01-30 17:55:39,143 - INFO - Sending request to Groq API...
+2026-01-30 17:55:39,382 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-01-30 17:55:39,383 - INFO - Received response from Groq.
+2026-01-30 17:55:39,384 - INFO - Executing SQL: INSERT INTO Finance (purchased, categorization, amount, date, payment_type) VALUES ('emotional distress', 'Other', 0, '2025-01-30', NULL);
+2026-01-30 17:55:39,401 - INFO - Modification affected 1 rows.
+2026-01-30 17:55:39,402 - INFO - Request processed. Status: Expense successfully added!
+2026-01-30 17:55:41,447 - INFO - Recent transactions requested.
+2026-01-30 17:55:41,450 - INFO - Executing SQL: SELECT id, purchased, amount, categorization, date FROM Finance ORDER BY id DESC LIMIT 5
+2026-01-30 17:55:41,451 - INFO - Query returned 3 rows.
+2026-01-30 17:55:43,492 - INFO - Analytics data requested.
+2026-01-30 17:55:43,496 - INFO - Executing SQL: SELECT categorization, SUM(amount) as total FROM Finance GROUP BY categorization ORDER BY total DESC
+2026-01-30 17:55:43,497 - INFO - Query returned 3 rows.
+2026-01-30 17:55:53,427 - INFO - Received query: raid a bank
+2026-01-30 17:55:53,427 - INFO - Sending request to Groq API...
+2026-01-30 17:55:53,690 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-01-30 17:55:53,690 - INFO - Received response from Groq.
+2026-01-30 17:55:53,692 - INFO - Executing SQL: I'm not able to assist with that request. Is there something else I can help you with, such as tracking a personal expense?
+2026-01-30 17:55:53,693 - ERROR - Database Execution Error: near "I": syntax error
+2026-01-30 17:55:53,693 - INFO - Request processed. Status: Error executing query.
+2026-01-30 17:55:55,747 - INFO - Recent transactions requested.
+2026-01-30 17:55:55,749 - INFO - Executing SQL: SELECT id, purchased, amount, categorization, date FROM Finance ORDER BY id DESC LIMIT 5
+2026-01-30 17:55:55,752 - INFO - Query returned 3 rows.
+2026-01-30 17:55:57,825 - INFO - Analytics data requested.
+2026-01-30 17:55:57,827 - INFO - Executing SQL: SELECT categorization, SUM(amount) as total FROM Finance GROUP BY categorization ORDER BY total DESC
+2026-01-30 17:55:57,827 - INFO - Query returned 3 rows.
+2026-01-30 17:56:21,919 - INFO - Received query: spent 200 on hat
+2026-01-30 17:56:21,919 - INFO - Sending request to Groq API...
+2026-01-30 17:56:22,127 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-01-30 17:56:22,127 - INFO - Received response from Groq.
+2026-01-30 17:56:22,130 - INFO - Executing SQL: INSERT INTO Finance (purchased, categorization, amount, date, payment_type) VALUES ('hat', 'Shopping', 200, '2025-01-30', NULL);
+2026-01-30 17:56:22,148 - INFO - Modification affected 1 rows.
+2026-01-30 17:56:22,149 - INFO - Request processed. Status: Expense successfully added!
+2026-01-30 17:56:24,191 - INFO - Recent transactions requested.
+2026-01-30 17:56:24,193 - INFO - Executing SQL: SELECT id, purchased, amount, categorization, date FROM Finance ORDER BY id DESC LIMIT 5
+2026-01-30 17:56:24,194 - INFO - Query returned 4 rows.
+2026-01-30 17:56:26,237 - INFO - Analytics data requested.
+2026-01-30 17:56:26,238 - INFO - Executing SQL: SELECT categorization, SUM(amount) as total FROM Finance GROUP BY categorization ORDER BY total DESC
+2026-01-30 17:56:26,238 - INFO - Query returned 3 rows.
+2026-01-30 17:57:24,927 - INFO - Received query: modify the second last expense which I entered and make it "spent 100 on marshmallows"
+2026-01-30 17:57:24,930 - INFO - Sending request to Groq API...
+2026-01-30 17:57:25,154 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-01-30 17:57:25,157 - INFO - Received response from Groq.
+2026-01-30 17:57:25,160 - INFO - Executing SQL: UPDATE Finance SET purchased = 'marshmallows', categorization = 'Food', amount = 100 WHERE id = (SELECT id FROM Finance ORDER BY id DESC LIMIT 1, 1)
+2026-01-30 17:57:25,177 - INFO - Modification affected 1 rows.
+2026-01-30 17:57:25,180 - INFO - Request processed. Status: Operation successful. Affected 1 records.
+2026-01-30 17:57:27,215 - INFO - Recent transactions requested.
+2026-01-30 17:57:27,219 - INFO - Executing SQL: SELECT id, purchased, amount, categorization, date FROM Finance ORDER BY id DESC LIMIT 5
+2026-01-30 17:57:27,221 - INFO - Query returned 4 rows.
+2026-01-30 17:57:29,247 - INFO - Analytics data requested.
+2026-01-30 17:57:29,249 - INFO - Executing SQL: SELECT categorization, SUM(amount) as total FROM Finance GROUP BY categorization ORDER BY total DESC
+2026-01-30 17:57:29,250 - INFO - Query returned 2 rows.
+2026-01-30 17:58:11,968 - INFO - Recent transactions requested.
+2026-01-30 17:58:11,970 - INFO - Executing SQL: SELECT id, purchased, amount, categorization, date FROM Finance ORDER BY id DESC LIMIT 5
+2026-01-30 17:58:11,973 - INFO - Query returned 4 rows.
+2026-01-30 17:58:14,022 - INFO - Analytics data requested.
+2026-01-30 17:58:14,025 - INFO - Executing SQL: SELECT categorization, SUM(amount) as total FROM Finance GROUP BY categorization ORDER BY total DESC
+2026-01-30 17:58:14,026 - INFO - Query returned 2 rows.
