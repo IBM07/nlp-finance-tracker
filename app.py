@@ -234,6 +234,9 @@ def get_ai_response(question: str) -> Optional[str]:
             stop=None,
             stream=False
         )
+        if not completion.choices or not completion.choices[0].message or not completion.choices[0].message.content:
+            logger.warning("get_ai_response warning: Empty choices/content returned from Groq")
+            return None
         response_text = completion.choices[0].message.content.strip()
         logger.info("get_ai_response success")
         return response_text
@@ -418,6 +421,10 @@ init_db()
 
 try:
     GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+    if not isinstance(GROQ_API_KEY, str) or not GROQ_API_KEY.strip():
+        logger.error("GROQ_API_KEY is present but empty")
+        st.error("GROQ_API_KEY is empty. Provide a valid key in Streamlit secrets.")
+        st.stop()
     st.session_state.groq_client = Groq(api_key=GROQ_API_KEY)
     logger.info("Groq client initialized successfully")
 except KeyError:
