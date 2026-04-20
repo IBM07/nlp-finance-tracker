@@ -548,7 +548,7 @@ with col_history:
 
         if "success" in msg.lower() or "added" in msg.lower():
             st.success(msg)
-        elif row_count > 0 or "found" in msg.lower():
+        elif row_count > 0 and "found" in msg.lower():
             st.info(msg)
         else:
             st.warning(msg)
