@@ -48,7 +48,9 @@ def init_db():
             
             cursor.execute(table_info)
             connection.commit()
-            logger.info("Database 'student.db' and table 'Finance' checked/created successfully.")
+            cursor.execute("SELECT COUNT(*) FROM Finance")
+            count = cursor.fetchone()[0]
+            logger.info(f"Finance table initialized. Current row count: {count}")
             
     except sqlite3.Error as e:
         logger.critical(f"CRITICAL ERROR: Could not create database. Reason: {e}")

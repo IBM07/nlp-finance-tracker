@@ -55,3 +55,13 @@ cover/
 # Project specific
 project/
 Career-Cortex/__pycache__/
+
+# Logs
+*.log
+backend.log
+
+# Streamlit secrets (local dev)
+.streamlit/secrets.toml
+
+# SQLite database (personal data, never commit)
+student.db
