@@ -17,7 +17,7 @@ services:
     plan: free
 
     # Render sets PORT automatically; uvicorn binds to it
-    buildCommand: pip install -r backend/requirements.txt
+    buildCommand: pip install -r requirements.txt
 
     # Run Alembic migrations then start the server.
     # preDeployCommand is a paid-tier feature, so we chain with && instead.
