@@ -1,0 +1,31 @@
+# ==========================================
+# backend/requirements.txt
+# ==========================================
+
+# Web framework
+fastapi
+uvicorn[standard]
+
+# LLM
+groq
+
+# Environment / config
+python-dotenv
+pydantic-settings
+
+# Database
+sqlalchemy
+psycopg2-binary      # Neon Postgres driver
+alembic              # DB migrations
+
+# Security / validation
+sqlparse             # SQL guard AST parsing
+slowapi              # Rate limiting
+
+# Auth (Phase 2)
+bcrypt               # Password hashing (passlib is abandoned & incompatible with bcrypt>=4)
+python-jose[cryptography]   # JWT
+
+# Testing (Phase 5)
+pytest
+httpx                # FastAPI async test client

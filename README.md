@@ -1,112 +1,117 @@
-AI-Powered Expense Tracker
+# InvoiceFlow — AI-Powered Finance Tracker
 
-One-line: A small Streamlit app that converts plain-English expense sentences into SQL (INSERT/SELECT) using Google Gemini and stores/results in a local SQLite database.
+A full-stack, multi-user personal finance tracker. Users log expenses in plain English
+(e.g. `I spent 250 on groceries yesterday using UPI`) and the backend uses an LLM (Groq)
+to translate that into a validated, parameterized database operation.
 
-Project overview:-
-This project is a prototype that demonstrates how an LLM can be used as an *interface* between natural language and a relational database. The app accepts a single-line user query such as ---> `I spent 250 on groceries yesterday using UPI` and uses Google Gemini to generate a single SQL statement which is executed against a local SQLite database and displayed back to the user.
-This is a prototype intended to show the UX and prompt-engineering ideas — not a production-ready system.
+## Tech stack
 
-Motivation:-
-Logging expenses is tedious. The goal was to let users speak or type like a human, and let an LLM translate that into DB operations. This taught practical tradeoffs of convenience vs safety when an LLM is allowed to generate code that gets executed.
+**Backend**
+- FastAPI (Python)
+- PostgreSQL via [Neon](https://neon.tech) (SQLite supported for local dev)
+- SQLAlchemy + Alembic migrations
+- JWT authentication with refresh token rotation/revocation
+- Groq LLM for natural-language → query translation
+- SQL guard layer to block dangerous/unintended queries
+- Rate limiting via `slowapi`
 
-Features:-
-1. Conversational input for logging or querying expenses
-2. Google Gemini integration to convert English → SQL
-3. Local SQLite (`student.db`) to persist data
-4. Streamlit-based UI with custom CSS for a polished look
-5. Basic safety: restricted prompt, blocked-word filter, rate limiting
+**Frontend**
+- React + Vite
+- React Router
+- Axios
+- Recharts (dashboard charts)
 
-Architecture & flow
-1. User types a natural-language expense or query in the Streamlit UI.
-2. The app sends a strongly-constrained prompt + user message to Google Gemini.
-3. Gemini returns a single SQL statement (INSERT or SELECT) following the enforced schema.
-4. The app executes that SQL against `student.db` and returns results to the UI.
+## Project structure
 
-Tech stack
-1. Python 3.11+ (recommended)
-2. Streamlit
-3. sqlite3 (standard library)
-4. `google.generativeai` (Gemini client)
-5. `rateguard` (rate limiting)
+```
+nlp-finance-tracker/
+├── backend/
+│   ├── app/
+│   │   ├── auth/           # signup/login, JWT, token rotation
+│   │   ├── finance/        # NLP query handling, SQL guard, transactions
+│   │   ├── middleware/     # rate limiting
+│   │   ├── config.py       # env-var driven settings (pydantic-settings)
+│   │   ├── database.py
+│   │   ├── models.py
+│   │   └── main.py         # FastAPI app entrypoint
+│   ├── alembic/             # DB migrations
+│   ├── tests/                # auth, finance, sql_guard tests
+│   ├── requirements.txt
+│   └── .env.example
+└── frontend/
+    ├── src/
+    │   ├── api/             # axios client
+    │   ├── components/
+    │   ├── context/         # auth context
+    │   ├── pages/           # Login, Signup, Dashboard, Settings
+    │   └── config.js
+    ├── package.json
+    └── .env.example
+```
 
-Quick start (run locally)
-1. Clone your repo and ensure `app.py` contains the project code.
-2. Create a virtual environment and install dependencies:
+## Quick start (local development)
+
+### Backend
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate   # or .venv\Scripts\activate on Windows
-pip install streamlit google-generativeai rateguard
+cd backend
+python -m venv venv
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # macOS/Linux
+pip install -r requirements.txt
+
+cp .env.example .env         # fill in GROQ_API_KEY, JWT_SECRET, etc.
+alembic upgrade head         # run DB migrations
+
+uvicorn app.main:app --reload
 ```
 
-3. Create the SQLite database with the required table (one-time):
+The API will be available at `http://localhost:8000` (interactive docs at `/docs`).
+
+### Frontend
 
 ```bash
-python - <<PY
-import sqlite3
-conn = sqlite3.connect('student.db')
-cur = conn.cursor()
-cur.execute('''
-CREATE TABLE IF NOT EXISTS Finance(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  purchased VARCHAR NOT NULL,
-  categorization TEXT NOT NULL,
-  amount REAL NOT NULL,
-  date TEXT NOT NULL,
-  payment_type TEXT
-);
-'''
-conn.commit()
-conn.close()
-print('student.db created with table Finance')
+cd frontend
+npm install
+cp .env.example .env         # point at your backend API URL
+npm run dev
 ```
 
-4. Add your Gemini API key to Streamlit secrets. Create `~/.streamlit/secrets.toml` or use `streamlit` CLI. Example `secrets.toml`:
-```toml
-GEMINI_API_KEY = "your_api_key_here"
-```
+The app will be available at `http://localhost:5173`.
 
-5. Run the app:
+## Environment variables
+
+See `backend/.env.example` and `frontend/.env.example` for the full list. Key backend
+variables:
+
+| Variable | Description |
+|---|---|
+| `GROQ_API_KEY` | Groq API key for LLM-powered query parsing |
+| `DATABASE_URL` | Postgres (Neon) or SQLite connection string |
+| `JWT_SECRET` | Secret used to sign access/refresh tokens — generate with `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `JWT_ALGORITHM` | JWT signing algorithm (default `HS256`) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token lifetime |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins |
+
+**Never commit `.env` files.** Both `backend/.env` and `frontend/.env` are gitignored.
+
+## Testing
+
 ```bash
-streamlit run app.py
-```
-Open `http://localhost:8501`
-
-Database schema
-Use this exact schema (the app and prompt rely on it):
-
-```sql
-CREATE TABLE Finance(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  purchased VARCHAR NOT NULL,
-  categorization TEXT NOT NULL,
-  amount REAL NOT NULL,
-  date TEXT NOT NULL,
-  payment_type TEXT
-);
-```
-Allowed categories (normalization): `['Food', 'Transport', 'Utilities', 'Shopping', 'Entertainment', 'Healthcare', 'Other']`
-
-Examples
-Input: `I spent 250 on groceries yesterday using UPI`
-
-Expected Gemini output (SQL):
-```sql
-INSERT INTO Finance (purchased, categorization, amount, date, payment_type) VALUES ('groceries', 'Food', 250.0, '2025-10-21', 'UPI');
+cd backend
+pytest
 ```
 
-Input: `Show me all entertainment expenses this month`
-Expected SQL:
+Covers auth flows, finance/transaction endpoints, and the SQL guard layer.
 
-```sql
-SELECT * FROM Finance WHERE categorization = 'Entertainment' AND date BETWEEN '2025-10-01' AND '2025-10-31';
-```  
+## Security notes
 
-> Note: These are examples — the Gemini model may vary. The app relies on a strict prompt to keep outputs consistent.
----
+- All secrets are loaded from environment variables — nothing is hardcoded in source.
+- User-submitted natural-language queries are translated to SQL by the LLM and then
+  validated by a SQL guard layer before execution (blocks destructive/out-of-scope statements).
+- JWT access tokens are short-lived; refresh tokens support rotation and revocation.
+- CORS origins are configurable per environment (no wildcard in production).
 
-License
-MIT — feel free to reuse the code. Add an appropriate `LICENSE` file if you publish this publicly.
+## License
 
-Contact
-If you share this on GitHub and want help hardening the code for production (parameterized queries, JSON output, auth), open an issue or DM me — I can provide the exact code changes and tests.
+MIT — feel free to reuse the code.

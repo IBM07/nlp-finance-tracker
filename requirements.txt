@@ -1,8 +1,0 @@
-streamlit
-groq
-python-dotenv
-rateguard
-fastapi
-uvicorn
-requests 
-pandas

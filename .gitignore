@@ -52,6 +52,25 @@ cover/
 # VS Code
 .vscode/
 
+# Logs
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Node / Frontend
+node_modules/
+dist/
+.env.local
+.env.production.local
+.env.development.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
 # Project specific
 project/
 Career-Cortex/__pycache__/

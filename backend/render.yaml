@@ -1,0 +1,42 @@
+# ==========================================
+# render.yaml — Render Deployment Blueprint
+# ==========================================
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Deploy:
+#   1. Push this repo to GitHub
+#   2. New → Blueprint on Render, point to this file
+#   3. Set env vars in Render dashboard (DATABASE_URL, GROQ_API_KEY, JWT_SECRET)
+# ==========================================
+
+services:
+  - type: web
+    name: finance-tracker-api
+    runtime: python
+    region: oregon    # closest free region — change if needed
+    plan: free
+
+    # Render sets PORT automatically; uvicorn binds to it
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+    # Working directory for the start command
+    rootDir: backend
+
+    # Run Alembic migrations before starting the server
+    # This ensures the DB schema is always up to date on deploy
+    preDeployCommand: alembic upgrade head
+
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false          # set manually in Render dashboard — never in source
+      - key: DATABASE_URL
+        sync: false          # Neon connection string — set in dashboard
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "15"
+      - key: ALLOWED_ORIGINS
+        sync: false          # your Cloudflare Pages URL
