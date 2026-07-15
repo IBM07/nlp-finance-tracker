@@ -21,6 +21,7 @@ alembic              # DB migrations
 # Security / validation
 sqlparse             # SQL guard AST parsing
 slowapi              # Rate limiting
+email-validator      # Required by Pydantic for EmailStr
 
 # Auth (Phase 2)
 bcrypt               # Password hashing (passlib is abandoned & incompatible with bcrypt>=4)
