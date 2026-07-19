@@ -91,7 +91,6 @@ def signup(req: SignupRequest, db: Session = Depends(get_db)):
     db.add(user)
     try:
         db.commit()
-        db.refresh(user)
     except IntegrityError:
         db.rollback()
         logger.warning("Signup attempt with duplicate email: %s", req.email)

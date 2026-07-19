@@ -37,6 +37,17 @@ engine = create_engine(
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
+    # expire_on_commit=False: by default SQLAlchemy expires every attribute on
+    # commit, so the next attribute access (e.g. entry.id in a route handler)
+    # transparently issues a fresh SELECT. Under NullPool, commit() has already
+    # closed the connection, so that "transparent" reload opens a brand-new one
+    # against Neon — an operation that intermittently fails against a
+    # serverless/cold-start endpoint, turning a successful write into a 500.
+    # Postgres already returns generated values (PK, server_default columns)
+    # via RETURNING during flush, before commit — so attributes are correct
+    # without a post-commit reload; this setting just stops SQLAlchemy from
+    # discarding and re-fetching them.
+    expire_on_commit=False,
     bind=engine,
 )
 

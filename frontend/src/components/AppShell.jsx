@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import AddTransactionModal from './AddTransactionModal';
 import {
   BarChart2, LayoutDashboard, ArrowRightLeft,
-  LineChart, FileText, Settings, LogOut, Plus,
+  LineChart, FileText, LogOut, Plus,
 } from 'lucide-react';
 
 const NAV = [
@@ -12,7 +12,6 @@ const NAV = [
   { label: 'Transactions', icon: ArrowRightLeft,  path: '/transactions' },
   { label: 'Analytics',    icon: LineChart,        path: '/analytics' },
   { label: 'Invoices',     icon: FileText,         path: '/invoices' },
-  { label: 'Settings',     icon: Settings,         path: '/settings' },
 ];
 
 export default function AppShell({ children, onTransactionAdded }) {

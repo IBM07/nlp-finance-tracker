@@ -1,8 +1,12 @@
+import { Pencil, Trash2 } from 'lucide-react';
+
 /**
  * RecentActivityTable — shows the latest N finance entries.
  * `rows` prop: array of { id, item, amount, category, date }
+ * `onEdit`   : (row) => void   — opens the edit modal for this row
+ * `onDelete` : (row) => void   — optimistically removes this row (Undo toast)
  */
-export default function RecentActivityTable({ rows = [], onViewAll }) {
+export default function RecentActivityTable({ rows = [], onViewAll, onEdit, onDelete }) {
   function getStatusBadge(amount) {
     return parseFloat(amount) >= 0
       ? <span className="badge badge-green">Revenue</span>
@@ -25,6 +29,8 @@ export default function RecentActivityTable({ rows = [], onViewAll }) {
       });
     } catch { return dateStr; }
   }
+
+  const showActions = Boolean(onEdit || onDelete);
 
   return (
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -53,11 +59,12 @@ export default function RecentActivityTable({ rows = [], onViewAll }) {
                 <th>CATEGORY</th>
                 <th>STATUS</th>
                 <th style={{ textAlign: 'right' }}>AMOUNT</th>
+                {showActions && <th style={{ width: 72 }} />}
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} className="row-hover-actions">
                   <td className="text-sm text-muted">{formatDate(row.date)}</td>
                   <td style={{ fontWeight: 500 }}>{row.item}</td>
                   <td>
@@ -65,6 +72,32 @@ export default function RecentActivityTable({ rows = [], onViewAll }) {
                   </td>
                   <td>{getStatusBadge(row.amount)}</td>
                   <td style={{ textAlign: 'right' }}>{formatAmount(row.amount)}</td>
+                  {showActions && (
+                    <td style={{ textAlign: 'right' }}>
+                      <div className="row-actions">
+                        {onEdit && (
+                          <button
+                            type="button"
+                            className="row-action-btn"
+                            title="Edit transaction"
+                            onClick={() => onEdit(row)}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button
+                            type="button"
+                            className="row-action-btn row-action-danger"
+                            title="Delete transaction"
+                            onClick={() => onDelete(row)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

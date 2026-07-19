@@ -4,7 +4,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
-import Settings from './pages/Settings';
 
 export default function App() {
   const { isAuthenticated } = useAuth();
@@ -26,11 +25,6 @@ export default function App() {
         path="/dashboard"
         element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
       />
-      <Route
-        path="/settings"
-        element={<ProtectedRoute><Settings /></ProtectedRoute>}
-      />
-
       {/* Default redirect */}
       <Route
         path="*"

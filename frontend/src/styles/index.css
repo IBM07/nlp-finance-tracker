@@ -346,6 +346,20 @@ tr:hover td { background: var(--gray-50); }
   padding: 10px 14px; color: var(--indigo-800); margin-bottom: 12px; overflow-x: auto;
 }
 
+.disambiguation-panel { margin-top: 4px; }
+.disambiguation-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.disambiguation-option {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: var(--white); border: 1.5px solid var(--gray-200); border-radius: var(--radius);
+  padding: 10px 14px; font-family: inherit; font-size: 13px; color: var(--gray-700);
+  cursor: pointer; text-align: left; transition: var(--transition);
+}
+.disambiguation-option:hover:not(:disabled) { border-color: var(--brand); background: var(--white); }
+.disambiguation-option:disabled { cursor: not-allowed; opacity: .6; }
+.disambiguation-radio { color: var(--gray-400); flex-shrink: 0; }
+.disambiguation-label { flex: 1; }
+.disambiguation-actions { display: flex; justify-content: flex-end; }
+
 /* ── Dashboard Grid ──────────────────────────── */
 .dashboard-grid { display: grid; grid-template-columns: 1fr 360px; gap: 20px; margin-top: 24px; }
 .dashboard-left { display: flex; flex-direction: column; gap: 20px; }
@@ -420,6 +434,24 @@ tr:hover td { background: var(--gray-50); }
 .toast.error { border-left: 3px solid var(--red); color: var(--gray-800); }
 .toast.info { border-left: 3px solid var(--brand); color: var(--gray-800); }
 @keyframes slideIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+
+.toast-undo-btn {
+  flex-shrink: 0; background: none; border: none; cursor: pointer;
+  color: var(--brand); font-weight: 700; font-size: 13px; font-family: inherit;
+  padding: 4px 6px; border-radius: var(--radius-sm); white-space: nowrap;
+}
+.toast-undo-btn:hover { background: var(--brand-bg); }
+
+/* ── Row hover actions (RecentActivityTable) ─────── */
+.row-actions { display: flex; justify-content: flex-end; gap: 4px; opacity: 0; transition: var(--transition); }
+.row-hover-actions:hover .row-actions { opacity: 1; }
+.row-action-btn {
+  width: 28px; height: 28px; border-radius: var(--radius-sm);
+  border: 1px solid var(--gray-200); background: var(--white); cursor: pointer;
+  display: grid; place-items: center; color: var(--gray-500); transition: var(--transition);
+}
+.row-action-btn:hover { background: var(--gray-100); color: var(--gray-800); }
+.row-action-danger:hover { background: var(--red-bg); color: var(--red); border-color: var(--red); }
 
 /* ── Utility ─────────────────────────────────── */
 .flex { display: flex; }

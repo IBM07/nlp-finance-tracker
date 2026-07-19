@@ -68,7 +68,7 @@ SCHEMA (finance_entries):
   id          INTEGER  PRIMARY KEY
   user_id     INTEGER  (always filter by this — provided below)
   purchased   TEXT     (item name)
-  categorization TEXT  ['Food','Transport','Utilities','Shopping','Entertainment','Healthcare','Other']
+  categorization TEXT  ['Food & Dining','Transport','Shopping','Entertainment','Healthcare','Utilities','Housing','Business & Software','Income','Other']
   amount      NUMERIC  (decimal, e.g. 250.00; negative = expense, positive = income)
   date        TEXT     (YYYY-MM-DD format, stored as text)
   payment_type TEXT    (e.g. UPI, Cash, Card — may be NULL)
@@ -77,7 +77,7 @@ SCHEMA (finance_entries):
 EXAMPLES (assume user_id = 42):
 
 Input: "Show me all food expenses"
-Output: SELECT * FROM finance_entries WHERE user_id = 42 AND categorization = 'Food'
+Output: SELECT * FROM finance_entries WHERE user_id = 42 AND categorization = 'Food & Dining'
 
 Input: "What did I spend the most on this month?"
 Output: SELECT categorization, SUM(amount) AS total FROM finance_entries WHERE user_id = 42 AND date::date >= DATE_TRUNC('month', CURRENT_DATE) GROUP BY categorization ORDER BY total DESC LIMIT 1

@@ -17,15 +17,18 @@
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 from sqlalchemy import (
     Integer,
     String,
     Numeric,
     DateTime,
     ForeignKey,
+    Text,
     func,
     Index,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -109,3 +112,44 @@ class FinanceEntry(Base):
 #   SELECT ... FROM finance_entries WHERE user_id = ? AND date >= ?
 # ---------------------------------------------------------------------------
 Index("ix_finance_entries_user_date", FinanceEntry.user_id, FinanceEntry.date)
+
+
+# ---------------------------------------------------------------------------
+# AuditLog model
+# ---------------------------------------------------------------------------
+# Captures every AI-driven write operation (NLP_ADD / NLP_EDIT / NLP_DELETE)
+# for debugging user complaints and as the foundation for a future
+# "Transaction History" page. Never mutated after insert — append-only.
+# ---------------------------------------------------------------------------
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # The finance_entries row affected. No FK constraint — the row may already
+    # be deleted (NLP_DELETE) by the time this log is read back.
+    entry_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    action: Mapped[str] = mapped_column(String(20), nullable=False)  # NLP_ADD | NLP_EDIT | NLP_DELETE
+
+    previous_state: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    new_state: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+
+    prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    def __repr__(self) -> str:
+        return f"<AuditLog id={self.id} user_id={self.user_id} action={self.action!r} entry_id={self.entry_id}>"

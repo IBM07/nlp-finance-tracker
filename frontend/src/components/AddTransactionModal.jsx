@@ -1,36 +1,66 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import apiClient from '../api/client';
 
+// Unified taxonomy (feature plan Decision 5) — must stay in sync with
+// backend/app/schemas.py::CATEGORIES, the single source of truth.
 const CATEGORIES = [
   'Food & Dining', 'Transport', 'Shopping', 'Entertainment',
-  'Healthcare', 'Utilities', 'Housing', 'Education',
-  'Infrastructure', 'Software', 'Client Work', 'Revenue',
-  'Other',
+  'Healthcare', 'Utilities', 'Housing', 'Business & Software',
+  'Income', 'Other',
 ];
 
 const PAYMENT_TYPES = ['Cash', 'Credit Card', 'Debit Card', 'UPI', 'Bank Transfer', 'Other'];
 
-/**
- * AddTransactionModal — slide-in modal for manually adding a finance entry.
- * Props:
- *   open: boolean
- *   onClose: () => void
- *   onSuccess: (newEntry) => void   — called after successful creation
- */
-export default function AddTransactionModal({ open, onClose, onSuccess }) {
-  const today = new Date().toISOString().split('T')[0];
-
-  const [form, setForm] = useState({
+function emptyForm(today) {
+  return {
     purchased: '',
     categorization: CATEGORIES[0],
     amount: '',
     date: today,
     payment_type: '',
     type: 'expense',   // 'expense' | 'revenue'  — controls amount sign
-  });
+  };
+}
+
+// Builds form state from an entry that may use either the create_entry() key
+// shape ({item, category}) or the NLP snapshot key shape ({purchased, categorization}).
+function formFromEntry(entry, today) {
+  const rawAmount = parseFloat(entry.amount);
+  return {
+    purchased: entry.item ?? entry.purchased ?? '',
+    categorization: entry.category ?? entry.categorization ?? CATEGORIES[0],
+    amount: String(Math.abs(rawAmount)),
+    date: entry.date || today,
+    payment_type: entry.payment_type || '',
+    type: rawAmount < 0 ? 'expense' : 'revenue',
+  };
+}
+
+/**
+ * AddTransactionModal — slide-in modal for adding or editing a finance entry.
+ * Props:
+ *   open: boolean
+ *   onClose: () => void
+ *   onSuccess: (entry) => void   — called after successful create/update
+ *   editEntry: object | null     — when set, the modal opens in edit mode,
+ *                                  pre-filled from this entry, and submits
+ *                                  via PUT /finance/entries/{editEntry.id}
+ */
+export default function AddTransactionModal({ open, onClose, onSuccess, editEntry = null }) {
+  const today = new Date().toISOString().split('T')[0];
+  const isEdit = Boolean(editEntry);
+
+  const [form, setForm] = useState(() => emptyForm(today));
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
+
+  // Re-sync form contents whenever the modal opens or the edit target changes.
+  useEffect(() => {
+    if (!open) return;
+    setError('');
+    setForm(editEntry ? formFromEntry(editEntry, today) : emptyForm(today));
+  }, [open, editEntry]);
 
   function handleChange(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -48,26 +78,28 @@ export default function AddTransactionModal({ open, onClose, onSuccess }) {
 
     // Expenses are stored as negative, revenues as positive
     const finalAmount = form.type === 'expense' ? -Math.abs(rawAmount) : Math.abs(rawAmount);
+    const payload = {
+      purchased:      form.purchased.trim(),
+      categorization: form.categorization,
+      amount:         finalAmount,
+      date:           form.date,
+      payment_type:   form.payment_type || null,
+    };
 
     setLoading(true);
     try {
-      const { data } = await apiClient.post('/finance/entries', {
-        purchased:      form.purchased.trim(),
-        categorization: form.categorization,
-        amount:         finalAmount,
-        date:           form.date,
-        payment_type:   form.payment_type || null,
-      });
+      const { data } = isEdit
+        ? await apiClient.put(`/finance/entries/${editEntry.id}`, payload)
+        : await apiClient.post('/finance/entries', payload);
       onSuccess(data.data);
-      // Reset form
-      setForm({ purchased: '', categorization: CATEGORIES[0], amount: '', date: today, payment_type: '', type: 'expense' });
+      if (!isEdit) setForm(emptyForm(today));
       onClose();
     } catch (err) {
       const msg = err.response?.data?.detail;
       if (Array.isArray(msg)) {
         setError(msg.map((e) => e.msg).join('; '));
       } else {
-        setError(msg || 'Failed to add transaction. Please try again.');
+        setError(msg || `Failed to ${isEdit ? 'update' : 'add'} transaction. Please try again.`);
       }
     } finally {
       setLoading(false);
@@ -112,9 +144,11 @@ export default function AddTransactionModal({ open, onClose, onSuccess }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           <div>
             <h2 id="modal-title" style={{ fontSize: 20, fontWeight: 800, color: 'var(--gray-900)', marginBottom: 4 }}>
-              Add Transaction
+              {isEdit ? 'Edit Transaction' : 'Add Transaction'}
             </h2>
-            <p style={{ fontSize: 13, color: 'var(--gray-400)' }}>Record a new expense or revenue entry.</p>
+            <p style={{ fontSize: 13, color: 'var(--gray-400)' }}>
+              {isEdit ? 'Update the details of this entry.' : 'Record a new expense or revenue entry.'}
+            </p>
           </div>
           <button
             id="modal-close"
@@ -255,7 +289,7 @@ export default function AddTransactionModal({ open, onClose, onSuccess }) {
               style={{ flex: 1 }}
               disabled={loading || !form.purchased.trim() || !form.amount || !form.date}
             >
-              {loading ? <span className="spinner" /> : 'Add Transaction'}
+              {loading ? <span className="spinner" /> : (isEdit ? 'Save Changes' : 'Add Transaction')}
             </button>
           </div>
         </form>
