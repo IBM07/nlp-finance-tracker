@@ -124,7 +124,7 @@ nlp-finance-tracker/
     │   │   ├── AddTransactionModal.jsx  # manual add + edit mode
     │   │   └── RecentActivityTable.jsx  # inline edit/delete icons
     │   ├── context/         # auth context
-    │   ├── pages/           # Login, Signup, Dashboard, Settings
+    │   ├── pages/           # Login, Signup, Dashboard
     │   └── config.js
     ├── package.json
     └── .env.example
@@ -182,6 +182,7 @@ App at `http://localhost:5173`
 | `DELETE` | `/finance/entries/{id}` | Manually delete a transaction (also used by the Undo flow) | 60/min |
 | `GET` | `/finance/recent` | Most recent transactions for the authenticated user | 60/min |
 | `GET` | `/finance/analytics` | Spending breakdown by category | 60/min |
+| `GET` | `/finance/summary` | Dashboard KPI cards — current vs. previous month revenue/expenses/net-profit/savings-rate, plus all-time entry count and largest expense | 60/min |
 | `POST` | `/auth/signup` `/auth/login` `/auth/refresh` `/auth/logout` `/auth/change-password` | Auth flows | — |
 
 All finance routes require a `Bearer` JWT and are scoped to the authenticated user — no
