@@ -260,6 +260,4 @@ to any static host (Cloudflare Pages, Vercel, Netlify).
 
 ## 📄 License
 
-Intended to be MIT — a `LICENSE` file hasn't been added to the repo yet, so treat this as
-"all rights reserved" until one lands. ([Add one here](https://choosealicense.com/licenses/mit/)
-in two minutes if MIT is really the intent.)
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
