@@ -1,46 +1,60 @@
-import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Sparkles, Send, Mic } from 'lucide-react';
 import apiClient from '../api/client';
+import { useChat } from '../context/ChatContext';
+import ChatTranscriptPanel from './ChatTranscriptPanel';
 
 /**
- * ChatInput — top-bar conversational prompt bar.
- * Calls POST /finance/chat and hands the raw ChatResponse (QUERY / ADD / EDIT /
- * DELETE / CONFIRM_NEEDED) back to the parent via onResult for routing.
- *
- * Exposes a `resend(message, confirmId)` method via ref so a
- * DisambiguationPanel can re-fire the same prompt with a `confirm_id` once
- * the user picks one of several ambiguous candidates, reusing this
- * component's request/loading/error handling instead of duplicating it.
+ * ChatInput — top-bar conversational prompt bar. Delegates the actual
+ * POST /finance/chat request/response handling and transcript state to
+ * ChatContext (lifted out of this component so the conversation history
+ * survives navigating between pages, since AppShell now persists across
+ * routes). This component only owns the input box and voice recording.
  *
  * Voice input: the mic button records a short clip via MediaRecorder and
  * sends it to POST /finance/transcribe. The returned transcript is placed
  * into the input box for the user to review and submit manually — it NEVER
- * calls sendChat(), so voice never bypasses the normal submit flow.
+ * calls sendMessage(), so voice never bypasses the normal submit flow.
  */
 const MAX_RECORD_MS = 30000;   // safety auto-stop so a forgotten recording can't run forever
 const MIME_TYPE = 'audio/webm'; // MediaRecorder default across Chrome/Edge/Firefox
 
-const ChatInput = forwardRef(function ChatInput({ onResult }, ref) {
+export default function ChatInput() {
+  const { sendMessage, loading, panelOpen, openPanel, closePanel } = useChat();
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
   const [micState, setMicState] = useState('idle'); // 'idle' | 'recording' | 'transcribing'
   const [micError, setMicError] = useState(null);
   const inputRef = useRef(null);
+  const wrapRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordTimeoutRef = useRef(null);
 
-  // Cmd/Ctrl+K focuses the input
+  // Cmd/Ctrl+K focuses the input; Escape closes the transcript panel
   useEffect(() => {
     function handler(e) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         inputRef.current?.focus();
       }
+      if (e.key === 'Escape' && panelOpen) {
+        closePanel();
+      }
     }
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [panelOpen, closePanel]);
+
+  // Close the panel on outside click
+  useEffect(() => {
+    function handleClick(e) {
+      if (panelOpen && wrapRef.current && !wrapRef.current.contains(e.target)) {
+        closePanel();
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [panelOpen, closePanel]);
 
   // Stop any in-flight recording / timers if the component unmounts mid-record
   useEffect(() => () => {
@@ -50,37 +64,16 @@ const ChatInput = forwardRef(function ChatInput({ onResult }, ref) {
     }
   }, []);
 
-  async function sendChat(text, confirmId) {
-    setLoading(true);
-    try {
-      const payload = confirmId != null ? { message: text, confirm_id: confirmId } : { message: text };
-      const { data } = await apiClient.post('/finance/chat', payload);
-      onResult({ type: 'success', ...data, query: text });
-      return true;
-    } catch (err) {
-      const detail = err.response?.data?.detail;
-      const errMessage = Array.isArray(detail) ? detail.map((d) => d.msg).join('; ') : (detail || 'Something went wrong. Please try again.');
-      onResult({ type: 'error', message: errMessage, query: text });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useImperativeHandle(ref, () => ({
-    resend: (text, confirmId) => sendChat(text, confirmId),
-  }));
-
   async function handleSubmit(e) {
     e.preventDefault();
     if (!message.trim() || loading) return;
     const text = message.trim();
-    const ok = await sendChat(text);
-    if (ok) setMessage('');
+    setMessage('');
+    await sendMessage(text);
   }
 
   // ── Voice input ──────────────────────────────────────────────
-  // transcribeAndFill ONLY calls setMessage() — never sendChat() — so a
+  // transcribeAndFill ONLY calls setMessage() — never sendMessage() — so a
   // spoken command lands in the input box for manual review, exactly like
   // typed text. This enforces "no auto-submit" structurally.
   async function transcribeAndFill(blob) {
@@ -151,9 +144,17 @@ const ChatInput = forwardRef(function ChatInput({ onResult }, ref) {
       : 'Speak a command';
 
   return (
-    <div className="query-bar-wrap">
+    <div className="query-bar-wrap" ref={wrapRef}>
       <form className="query-bar" onSubmit={handleSubmit}>
-        <span className="query-bar-icon"><Sparkles size={15} /></span>
+        <button
+          type="button"
+          className="query-bar-icon-btn"
+          onClick={openPanel}
+          title="Conversation history"
+          aria-label="Conversation history"
+        >
+          <Sparkles size={15} />
+        </button>
         <input
           ref={inputRef}
           id="chat-input"
@@ -162,6 +163,7 @@ const ChatInput = forwardRef(function ChatInput({ onResult }, ref) {
           placeholder='Try: "Add ₹500 Zomato dinner" or "What did I spend last week?"'
           value={message}
           onChange={(e) => setMessage(e.target.value)}
+          onFocus={openPanel}
           disabled={loading}
         />
         <button
@@ -191,8 +193,7 @@ const ChatInput = forwardRef(function ChatInput({ onResult }, ref) {
         </button>
       </form>
       {micError && <div className="query-bar-mic-error">{micError}</div>}
+      {panelOpen && <ChatTranscriptPanel />}
     </div>
   );
-});
-
-export default ChatInput;
+}

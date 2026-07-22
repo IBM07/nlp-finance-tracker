@@ -1,9 +1,5 @@
 import { useState } from 'react';
-
-function formatCurrency(n) {
-  const value = parseFloat(n);
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(isNaN(value) ? 0 : value);
-}
+import { formatCurrency } from '../utils/format';
 
 /**
  * DisambiguationPanel — rendered when a chat EDIT/DELETE prompt matched more

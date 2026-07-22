@@ -1,9 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import AppShell from './components/AppShell';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
+import Transactions from './pages/Transactions';
+import Analytics from './pages/Analytics';
 
 export default function App() {
   const { isAuthenticated } = useAuth();
@@ -20,11 +23,17 @@ export default function App() {
         element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Signup />}
       />
 
-      {/* Protected routes */}
-      <Route
-        path="/dashboard"
-        element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
-      />
+      {/* Protected routes — AppShell persists across these as a layout,
+          so sidebar/topbar/chat state survive navigation instead of
+          remounting on every page change. */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppShell />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/transactions" element={<Transactions />} />
+          <Route path="/analytics" element={<Analytics />} />
+        </Route>
+      </Route>
+
       {/* Default redirect */}
       <Route
         path="*"

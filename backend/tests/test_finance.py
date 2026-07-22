@@ -86,6 +86,14 @@ class TestUnauthenticated:
         res = client.get("/finance/recent")
         assert res.status_code == 401
 
+    def test_list_entries_requires_auth(self, client):
+        res = client.get("/finance/entries")
+        assert res.status_code == 401
+
+    def test_analytics_trend_requires_auth(self, client):
+        res = client.get("/finance/analytics/trend")
+        assert res.status_code == 401
+
     def test_query_requires_auth(self, client):
         res = client.post("/finance/query", json={"question": "show all expenses"})
         assert res.status_code == 401
@@ -187,3 +195,85 @@ class TestOwnDataVisible:
 
         assert res_recent.status_code == 200
         assert res_recent.json()["data"] == []
+
+
+# ===========================================================================
+# Transactions page: GET /finance/entries (pagination + filters)
+# ===========================================================================
+
+class TestListEntries:
+    def test_returns_only_own_data(self, client, two_users_with_data):
+        tokens1, tokens2 = two_users_with_data
+
+        res1 = client.get("/finance/entries", headers={"Authorization": f"Bearer {tokens1['access_token']}"})
+        res2 = client.get("/finance/entries", headers={"Authorization": f"Bearer {tokens2['access_token']}"})
+
+        assert res1.status_code == 200
+        assert res2.status_code == 200
+
+        body1, body2 = res1.json(), res2.json()
+        assert body1["total"] == 2
+        assert body2["total"] == 2
+        assert {row["item"] for row in body1["data"]} == {"Coffee", "Rent"}
+        assert {row["item"] for row in body2["data"]} == {"Gym", "Netflix"}
+
+    def test_category_filter(self, client, two_users_with_data):
+        tokens1, _ = two_users_with_data
+        res = client.get(
+            "/finance/entries",
+            params={"category": "Food"},
+            headers={"Authorization": f"Bearer {tokens1['access_token']}"},
+        )
+        assert res.status_code == 200
+        body = res.json()
+        assert body["total"] == 1
+        assert body["data"][0]["item"] == "Coffee"
+
+    def test_search_filter(self, client, two_users_with_data):
+        tokens1, _ = two_users_with_data
+        res = client.get(
+            "/finance/entries",
+            params={"search": "ren"},
+            headers={"Authorization": f"Bearer {tokens1['access_token']}"},
+        )
+        assert res.status_code == 200
+        body = res.json()
+        assert body["total"] == 1
+        assert body["data"][0]["item"] == "Rent"
+
+    def test_pagination(self, client, two_users_with_data):
+        tokens1, _ = two_users_with_data
+        res = client.get(
+            "/finance/entries",
+            params={"limit": 1, "offset": 0},
+            headers={"Authorization": f"Bearer {tokens1['access_token']}"},
+        )
+        assert res.status_code == 200
+        body = res.json()
+        assert len(body["data"]) == 1
+        assert body["total"] == 2   # total reflects the full filtered set, not just this page
+
+
+# ===========================================================================
+# Analytics page: GET /finance/analytics/trend
+# ===========================================================================
+
+class TestAnalyticsTrend:
+    def test_returns_only_own_data_shape(self, client, two_users_with_data):
+        """
+        Seeded entries are dated 2025-01-01, a fixed past date outside the
+        rolling "last N months" window computed from the real clock at test
+        time, so this only asserts response shape (not fixture amounts).
+        """
+        tokens1, _ = two_users_with_data
+        res = client.get(
+            "/finance/analytics/trend",
+            params={"months": 6},
+            headers={"Authorization": f"Bearer {tokens1['access_token']}"},
+        )
+        assert res.status_code == 200
+        data = res.json()["data"]
+        assert len(data) == 6
+        assert all({"month", "revenue", "expenses"} <= set(bucket.keys()) for bucket in data)
+        # Oldest-to-newest ordering
+        assert [b["month"] for b in data] == sorted(b["month"] for b in data)

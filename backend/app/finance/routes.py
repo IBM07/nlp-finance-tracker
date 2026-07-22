@@ -122,6 +122,52 @@ def get_recent_transactions(
         raise HTTPException(status_code=500, detail="Failed to fetch recent transactions.")
 
 
+@router.get("/entries")
+@limiter.limit("60/minute")
+def list_entries_route(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    limit: int = 20,
+    offset: int = 0,
+    category: str | None = None,
+    search: str | None = None,
+):
+    """Paginated, filterable transaction list for the Transactions page."""
+    user_id = current_user.id
+    try:
+        result = service.list_entries(
+            user_id=user_id,
+            db=db,
+            limit=max(1, min(limit, 100)),
+            offset=max(0, offset),
+            category=category,
+            search=search,
+        )
+        return {"status": "success", **result}
+    except Exception:
+        logger.exception("List entries error for user_id=%s", user_id)
+        raise HTTPException(status_code=500, detail="Failed to fetch transactions.")
+
+
+@router.get("/analytics/trend")
+@limiter.limit("60/minute")
+def get_analytics_trend(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    months: int = 6,
+):
+    """Returns monthly revenue/expense totals for the Analytics page trend chart."""
+    user_id = current_user.id
+    try:
+        data = service.get_monthly_trend(user_id=user_id, db=db, months=max(1, min(months, 24)))
+        return {"status": "success", "data": data}
+    except Exception:
+        logger.exception("Analytics trend error for user_id=%s", user_id)
+        raise HTTPException(status_code=500, detail="Failed to fetch analytics trend.")
+
+
 @router.post("/entries", status_code=status.HTTP_201_CREATED)
 @limiter.limit("60/minute")
 def create_entry(

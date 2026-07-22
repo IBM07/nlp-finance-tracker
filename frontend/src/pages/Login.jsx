@@ -1,24 +1,39 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, Eye, EyeOff, BarChart2 } from 'lucide-react';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validate(form) {
+  const errs = {};
+  if (!form.email) errs.email = 'Email is required.';
+  else if (!EMAIL_RE.test(form.email)) errs.email = 'Enter a valid email address.';
+  if (!form.password) errs.password = 'Password is required.';
+  return errs;
+}
 
 export default function Login() {
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPass, setShowPass] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError('');
+    const errs = validate(form);
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    setErrors({});
+
     const result = await login(form.email, form.password);
     if (result.success) {
-      navigate('/dashboard', { replace: true });
+      const redirectTo = location.state?.from?.pathname || '/dashboard';
+      navigate(redirectTo, { replace: true, state: { justLoggedIn: true } });
     } else {
-      setError(result.message);
+      setErrors({ api: result.message });
     }
   }
 
@@ -50,17 +65,16 @@ export default function Login() {
                 autoComplete="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? 'login-email-error' : undefined}
               />
             </div>
+            {errors.email && <p id="login-email-error" className="form-error">{errors.email}</p>}
           </div>
 
           {/* Password */}
           <div className="form-group">
-            <div className="form-label-row">
-              <label className="form-label" htmlFor="login-password">Password</label>
-              <span className="form-link">Forgot password?</span>
-            </div>
+            <label className="form-label" htmlFor="login-password">Password</label>
             <div className="form-input-wrap">
               <span className="form-input-icon"><Lock size={16} /></span>
               <input
@@ -71,7 +85,8 @@ export default function Login() {
                 autoComplete="current-password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required
+                aria-invalid={Boolean(errors.password)}
+                aria-describedby={errors.password ? 'login-password-error' : undefined}
               />
               <button
                 type="button"
@@ -82,9 +97,10 @@ export default function Login() {
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {errors.password && <p id="login-password-error" className="form-error">{errors.password}</p>}
           </div>
 
-          {error && <p className="form-error" style={{ marginBottom: 14 }}>{error}</p>}
+          {errors.api && <p className="form-error" style={{ marginBottom: 14 }}>{errors.api}</p>}
 
           <button id="login-submit" type="submit" className="btn btn-primary" disabled={isLoading}>
             {isLoading ? <span className="spinner" /> : 'Sign in'}

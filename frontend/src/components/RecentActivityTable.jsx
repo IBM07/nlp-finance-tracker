@@ -1,4 +1,5 @@
 import { Pencil, Trash2 } from 'lucide-react';
+import { formatDate, formatSignedCurrency } from '../utils/format';
 
 /**
  * RecentActivityTable — shows the latest N finance entries.
@@ -16,18 +17,7 @@ export default function RecentActivityTable({ rows = [], onViewAll, onEdit, onDe
   function formatAmount(amount) {
     const n = parseFloat(amount);
     const cls = n >= 0 ? 'amount-pos' : 'amount-neg';
-    const formatted = new Intl.NumberFormat('en-US', {
-      style: 'currency', currency: 'USD', signDisplay: 'always',
-    }).format(n);
-    return <span className={cls}>{formatted}</span>;
-  }
-
-  function formatDate(dateStr) {
-    try {
-      return new Date(dateStr).toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric', year: 'numeric',
-      });
-    } catch { return dateStr; }
+    return <span className={cls}>{formatSignedCurrency(n)}</span>;
   }
 
   const showActions = Boolean(onEdit || onDelete);

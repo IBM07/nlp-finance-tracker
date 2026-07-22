@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, Eye, EyeOff, BarChart2 } from 'lucide-react';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function Signup() {
   const { signup, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -14,6 +16,7 @@ export default function Signup() {
   function validate() {
     const errs = {};
     if (!form.email) errs.email = 'Email is required.';
+    else if (!EMAIL_RE.test(form.email)) errs.email = 'Enter a valid email address.';
     if (form.password.length < 8) errs.password = 'Password must be at least 8 characters.';
     if (form.password !== form.confirmPassword) errs.confirmPassword = 'Passwords do not match.';
     return errs;
@@ -58,9 +61,11 @@ export default function Signup() {
                 autoComplete="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? 'signup-email-error' : undefined}
               />
             </div>
-            {errors.email && <p className="form-error">{errors.email}</p>}
+            {errors.email && <p id="signup-email-error" className="form-error">{errors.email}</p>}
           </div>
 
           <div className="form-group">
@@ -75,12 +80,19 @@ export default function Signup() {
                 autoComplete="new-password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
+                aria-invalid={Boolean(errors.password)}
+                aria-describedby={errors.password ? 'signup-password-error' : undefined}
               />
-              <button type="button" className="form-input-action" onClick={() => setShowPass(!showPass)}>
+              <button
+                type="button"
+                className="form-input-action"
+                onClick={() => setShowPass(!showPass)}
+                aria-label={showPass ? 'Hide password' : 'Show password'}
+              >
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            {errors.password && <p className="form-error">{errors.password}</p>}
+            {errors.password && <p id="signup-password-error" className="form-error">{errors.password}</p>}
           </div>
 
           <div className="form-group">
@@ -95,9 +107,11 @@ export default function Signup() {
                 autoComplete="new-password"
                 value={form.confirmPassword}
                 onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                aria-invalid={Boolean(errors.confirmPassword)}
+                aria-describedby={errors.confirmPassword ? 'signup-confirm-error' : undefined}
               />
             </div>
-            {errors.confirmPassword && <p className="form-error">{errors.confirmPassword}</p>}
+            {errors.confirmPassword && <p id="signup-confirm-error" className="form-error">{errors.confirmPassword}</p>}
           </div>
 
           {errors.api && <p className="form-error" style={{ marginBottom: 14 }}>{errors.api}</p>}

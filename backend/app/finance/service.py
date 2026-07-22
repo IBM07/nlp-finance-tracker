@@ -213,6 +213,101 @@ def get_recent(user_id: int, db: Session, limit: int = 5) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Paginated / filterable transactions list (Transactions page)
+# ---------------------------------------------------------------------------
+
+def list_entries(
+    user_id: int,
+    db: Session,
+    limit: int = 20,
+    offset: int = 0,
+    category: Optional[str] = None,
+    search: Optional[str] = None,
+) -> dict:
+    """
+    Returns a paginated, optionally filtered slice of this user's finance
+    entries, newest first, plus the total row count matching the filter
+    (for the caller to compute page count). Reuses the composite
+    (user_id, date) index that already backs get_recent()/get_summary().
+    """
+    where = ["user_id = :uid"]
+    params: dict = {"uid": user_id}
+    if category:
+        where.append("categorization = :cat")
+        params["cat"] = category
+    if search:
+        where.append("purchased ILIKE :search")
+        params["search"] = f"%{search}%"
+    where_sql = " AND ".join(where)
+
+    total = db.execute(
+        text(f"SELECT COUNT(*) FROM finance_entries WHERE {where_sql}"), params
+    ).scalar()
+
+    rows = db.execute(
+        text(
+            f"SELECT id, purchased, amount, categorization, date, payment_type "
+            f"FROM finance_entries WHERE {where_sql} "
+            f"ORDER BY date DESC, id DESC LIMIT :lim OFFSET :off"
+        ),
+        {**params, "lim": limit, "off": offset},
+    ).fetchall()
+
+    data = [
+        {
+            "id": row[0],
+            "item": row[1],
+            "amount": Decimal(str(row[2])),
+            "category": row[3],
+            "date": row[4],
+            "payment_type": row[5],
+        }
+        for row in rows
+    ]
+    return {"data": data, "total": total, "limit": limit, "offset": offset}
+
+
+# ---------------------------------------------------------------------------
+# Monthly revenue/expense trend (Analytics page)
+# ---------------------------------------------------------------------------
+
+def get_monthly_trend(user_id: int, db: Session, months: int = 6) -> list[dict]:
+    """
+    Returns revenue/expense totals bucketed by calendar month for each of the
+    last `months` months (oldest first), including months with no activity
+    so the Analytics chart has a continuous x-axis.
+    """
+    rows = db.execute(
+        text("SELECT date, amount FROM finance_entries WHERE user_id = :uid"),
+        {"uid": user_id},
+    ).fetchall()
+
+    today = datetime.now(timezone.utc).date()
+    buckets: dict[str, dict] = {}
+    year, month = today.year, today.month
+    for _ in range(months):
+        key = f"{year:04d}-{month:02d}"
+        buckets[key] = {"month": key, "revenue": Decimal("0"), "expenses": Decimal("0")}
+        month -= 1
+        if month == 0:
+            month = 12
+            year -= 1
+
+    for date_str, raw_amount in rows:
+        key = (date_str or "")[:7]
+        bucket = buckets.get(key)
+        if bucket is None:
+            continue
+        amount = Decimal(str(raw_amount))
+        if amount > 0:
+            bucket["revenue"] += amount
+        else:
+            bucket["expenses"] += -amount
+
+    return sorted(buckets.values(), key=lambda b: b["month"])
+
+
+# ---------------------------------------------------------------------------
 # Create entry service
 # ---------------------------------------------------------------------------
 

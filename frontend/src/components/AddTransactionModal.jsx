@@ -1,16 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import apiClient from '../api/client';
-
-// Unified taxonomy (feature plan Decision 5) — must stay in sync with
-// backend/app/schemas.py::CATEGORIES, the single source of truth.
-const CATEGORIES = [
-  'Food & Dining', 'Transport', 'Shopping', 'Entertainment',
-  'Healthcare', 'Utilities', 'Housing', 'Business & Software',
-  'Income', 'Other',
-];
-
-const PAYMENT_TYPES = ['Cash', 'Credit Card', 'Debit Card', 'UPI', 'Bank Transfer', 'Other'];
+import { CATEGORIES, PAYMENT_TYPES } from '../constants/finance';
 
 function emptyForm(today) {
   return {
@@ -38,7 +29,7 @@ function formFromEntry(entry, today) {
 }
 
 /**
- * AddTransactionModal — slide-in modal for adding or editing a finance entry.
+ * AddTransactionModal — modal for adding or editing a finance entry.
  * Props:
  *   open: boolean
  *   onClose: () => void
@@ -55,12 +46,51 @@ export default function AddTransactionModal({ open, onClose, onSuccess, editEntr
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
 
+  const dialogRef = useRef(null);
+  const firstFieldRef = useRef(null);
+  const previouslyFocusedRef = useRef(null);
+
   // Re-sync form contents whenever the modal opens or the edit target changes.
   useEffect(() => {
     if (!open) return;
     setError('');
     setForm(editEntry ? formFromEntry(editEntry, today) : emptyForm(today));
   }, [open, editEntry]);
+
+  // Focus trap + Escape-to-close + focus restore on close.
+  useEffect(() => {
+    if (!open) return;
+    previouslyFocusedRef.current = document.activeElement;
+    const raf = requestAnimationFrame(() => firstFieldRef.current?.focus());
+
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = dialogRef.current.querySelectorAll(
+        'input, select, button, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocusedRef.current?.focus?.();
+    };
+  }, [open, onClose]);
 
   function handleChange(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -110,54 +140,30 @@ export default function AddTransactionModal({ open, onClose, onSuccess, editEntr
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(17,24,39,.45)',
-          backdropFilter: 'blur(4px)',
-          zIndex: 1000,
-          animation: 'fadeIn .15s ease',
-        }}
-      />
+      <div className="modal-backdrop" onClick={onClose} />
 
-      {/* Modal panel */}
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        style={{
-          position: 'fixed',
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          background: 'var(--white)',
-          borderRadius: 'var(--radius-xl)',
-          width: '100%', maxWidth: 480,
-          padding: '32px',
-          boxShadow: '0 24px 64px rgba(0,0,0,.18)',
-          zIndex: 1001,
-          animation: 'slideUp .2s ease',
-        }}
+        className="modal-panel"
       >
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+        <div className="modal-header">
           <div>
-            <h2 id="modal-title" style={{ fontSize: 20, fontWeight: 800, color: 'var(--gray-900)', marginBottom: 4 }}>
+            <h2 id="modal-title" className="modal-title">
               {isEdit ? 'Edit Transaction' : 'Add Transaction'}
             </h2>
-            <p style={{ fontSize: 13, color: 'var(--gray-400)' }}>
+            <p className="modal-sub">
               {isEdit ? 'Update the details of this entry.' : 'Record a new expense or revenue entry.'}
             </p>
           </div>
           <button
             id="modal-close"
+            type="button"
+            className="modal-close-btn"
             onClick={onClose}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--gray-400)', display: 'grid', placeItems: 'center',
-              width: 32, height: 32, borderRadius: 8,
-            }}
+            aria-label="Close"
           >
             <X size={18} />
           </button>
@@ -165,29 +171,14 @@ export default function AddTransactionModal({ open, onClose, onSuccess, editEntr
 
         <form onSubmit={handleSubmit} noValidate>
           {/* Type toggle */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          <div className="modal-type-toggle">
             {['expense', 'revenue'].map((t) => (
               <button
                 key={t}
                 type="button"
                 id={`type-${t}`}
+                className={`modal-type-btn ${t} ${form.type === t ? 'active' : ''}`}
                 onClick={() => handleChange('type', t)}
-                style={{
-                  flex: 1, height: 38, borderRadius: 'var(--radius-sm)',
-                  border: '1.5px solid',
-                  borderColor: form.type === t
-                    ? (t === 'expense' ? 'var(--red)' : 'var(--green)')
-                    : 'var(--gray-200)',
-                  background: form.type === t
-                    ? (t === 'expense' ? 'var(--red-bg)' : 'var(--green-bg)')
-                    : 'var(--white)',
-                  color: form.type === t
-                    ? (t === 'expense' ? 'var(--red)' : 'var(--green)')
-                    : 'var(--gray-500)',
-                  fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                  fontFamily: 'inherit', transition: 'var(--transition)',
-                  textTransform: 'capitalize',
-                }}
               >
                 {t === 'expense' ? '↓ Expense' : '↑ Revenue'}
               </button>
@@ -198,6 +189,7 @@ export default function AddTransactionModal({ open, onClose, onSuccess, editEntr
           <div className="settings-field">
             <label className="settings-label" htmlFor="entry-purchased">Item / Description</label>
             <input
+              ref={firstFieldRef}
               id="entry-purchased"
               type="text"
               className="settings-input"
@@ -209,7 +201,7 @@ export default function AddTransactionModal({ open, onClose, onSuccess, editEntr
           </div>
 
           {/* Amount + Date row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 0 }}>
+          <div className="modal-row-2">
             <div className="settings-field">
               <label className="settings-label" htmlFor="entry-amount">Amount</label>
               <input
@@ -245,7 +237,6 @@ export default function AddTransactionModal({ open, onClose, onSuccess, editEntr
               className="settings-input"
               value={form.categorization}
               onChange={(e) => handleChange('categorization', e.target.value)}
-              style={{ cursor: 'pointer' }}
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -255,13 +246,14 @@ export default function AddTransactionModal({ open, onClose, onSuccess, editEntr
 
           {/* Payment type (optional) */}
           <div className="settings-field">
-            <label className="settings-label" htmlFor="entry-payment">Payment Method <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(optional)</span></label>
+            <label className="settings-label" htmlFor="entry-payment">
+              Payment Method <span className="settings-label-optional">(optional)</span>
+            </label>
             <select
               id="entry-payment"
               className="settings-input"
               value={form.payment_type}
               onChange={(e) => handleChange('payment_type', e.target.value)}
-              style={{ cursor: 'pointer' }}
             >
               <option value="">Select method...</option>
               {PAYMENT_TYPES.map((p) => (
@@ -270,23 +262,17 @@ export default function AddTransactionModal({ open, onClose, onSuccess, editEntr
             </select>
           </div>
 
-          {error && <p className="form-error" style={{ marginBottom: 14 }}>{error}</p>}
+          {error && <p className="form-error modal-error">{error}</p>}
 
           {/* Actions */}
-          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={onClose}
-              style={{ flex: 1 }}
-            >
+          <div className="modal-actions">
+            <button type="button" className="btn btn-ghost" onClick={onClose}>
               Cancel
             </button>
             <button
               id="add-transaction-submit"
               type="submit"
               className="btn btn-primary"
-              style={{ flex: 1 }}
               disabled={loading || !form.purchased.trim() || !form.amount || !form.date}
             >
               {loading ? <span className="spinner" /> : (isEdit ? 'Save Changes' : 'Add Transaction')}
@@ -294,11 +280,6 @@ export default function AddTransactionModal({ open, onClose, onSuccess, editEntr
           </div>
         </form>
       </div>
-
-      <style>{`
-        @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
-        @keyframes slideUp { from { opacity:0; transform: translate(-50%,-48%) } to { opacity:1; transform: translate(-50%,-50%) } }
-      `}</style>
     </>
   );
 }

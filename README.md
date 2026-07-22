@@ -132,8 +132,10 @@ nlp-finance-tracker/
     │   │   ├── DisambiguationPanel.jsx  # candidate picker for ambiguous edit/delete
     │   │   ├── AddTransactionModal.jsx  # manual add + edit mode
     │   │   └── RecentActivityTable.jsx  # inline edit/delete icons
-    │   ├── context/         # auth context
-    │   ├── pages/           # Login, Signup, Dashboard
+    │   ├── context/         # auth, theme (light/dark), toast, chat, data-refresh
+    │   ├── pages/           # Login, Signup, Dashboard, Transactions, Analytics
+    │   ├── constants/       # shared finance constants (categories, etc.)
+    │   ├── utils/           # formatting helpers (currency, trends)
     │   └── config.js
     ├── package.json
     └── .env.example
@@ -191,7 +193,9 @@ App at `http://localhost:5173`
 | `PUT` | `/finance/entries/{id}` | Manually update a transaction (also used by the Undo flow) | 60/min |
 | `DELETE` | `/finance/entries/{id}` | Manually delete a transaction (also used by the Undo flow) | 60/min |
 | `GET` | `/finance/recent` | Most recent transactions for the authenticated user | 60/min |
+| `GET` | `/finance/entries` | Paginated, filterable transaction list (by category + free-text search) for the Transactions page | 60/min |
 | `GET` | `/finance/analytics` | Spending breakdown by category | 60/min |
+| `GET` | `/finance/analytics/trend` | Monthly revenue/expense totals for the Analytics trend chart | 60/min |
 | `GET` | `/finance/summary` | Dashboard KPI cards — current vs. previous month revenue/expenses/net-profit/savings-rate, plus all-time entry count and largest expense | 60/min |
 | `POST` | `/auth/signup` `/auth/login` `/auth/refresh` `/auth/logout` `/auth/change-password` | Auth flows | — |
 
