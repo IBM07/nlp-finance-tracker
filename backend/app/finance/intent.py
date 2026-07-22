@@ -152,7 +152,10 @@ def classify_and_extract(prompt: str, user_id: int) -> IntentResult:
                 {"role": "user", "content": prompt},
             ],
             temperature=0,
-            max_tokens=400,
+            # gpt-oss reasoning tokens count against max_tokens; keep them low so
+            # a complex ADD/EDIT can't exhaust the budget before emitting the JSON.
+            reasoning_effort="low",
+            max_tokens=800,
             top_p=1,
             stream=False,
         )

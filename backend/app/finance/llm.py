@@ -125,7 +125,12 @@ def generate_sql(question: str, user_id: int) -> Optional[str]:
                 {"role": "user", "content": question},
             ],
             temperature=0,       # deterministic SQL output
-            max_tokens=300,
+            # gpt-oss is a reasoning model whose chain-of-thought counts against
+            # max_tokens. Keep reasoning minimal (SQL generation is near-mechanical)
+            # and leave ample room for the actual SQL, or the completion gets cut
+            # off mid-reasoning and returns empty content (finish_reason=length).
+            reasoning_effort="low",
+            max_tokens=1200,
             top_p=1,
             stream=False,
         )

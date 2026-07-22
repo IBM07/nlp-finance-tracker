@@ -5,6 +5,7 @@
 # Web framework
 fastapi
 uvicorn[standard]
+python-multipart     # Multipart/form-data parsing for UploadFile (voice transcribe endpoint)
 
 # LLM
 groq
@@ -29,4 +30,4 @@ python-jose[cryptography]   # JWT
 
 # Testing (Phase 5)
 pytest
-httpx                # FastAPI async test client
+httpx                # FastAPI async test client + Deepgram REST calls (finance/stt.py)

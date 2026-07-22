@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     # --- Groq LLM ---
     groq_api_key: str
 
+    # --- Deepgram STT (voice input for the chat assistant) ---
+    deepgram_api_key: str
+
     # --- Database ---
     # For local dev without Neon: set to "sqlite:///./student.db"
     # For production (Neon): "postgresql+psycopg2://user:pass@host/dbname?sslmode=require"

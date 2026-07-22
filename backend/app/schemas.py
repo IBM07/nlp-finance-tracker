@@ -250,6 +250,11 @@ class ChatResponse(BaseModel):
     requires_confirmation: bool = False
 
 
+class TranscribeResponse(BaseModel):
+    """Response from POST /finance/transcribe — the voice-to-text transcript."""
+    transcript: str
+
+
 # ---------------------------------------------------------------------------
 # Auth schemas (Phase 2 — fully implemented)
 # ---------------------------------------------------------------------------

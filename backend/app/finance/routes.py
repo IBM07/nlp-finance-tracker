@@ -6,7 +6,7 @@
 # ==========================================
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -18,6 +18,7 @@ from app.schemas import (
     FinanceEntryUpdate,
     ChatRequest,
     ChatResponse,
+    TranscribeResponse,
     IntentAdd,
     IntentDelete,
     IntentEdit,
@@ -25,6 +26,7 @@ from app.schemas import (
 )
 from app.finance import service
 from app.finance.intent import classify_and_extract, IntentExtractionError
+from app.finance.stt import transcribe_audio, TranscriptionError
 from app.finance.sql_guard import SQLGuardError
 from app.middleware.rate_limit import limiter
 from app.auth.dependencies import get_current_user
@@ -297,4 +299,48 @@ def chat(
     except Exception:
         logger.exception("Unexpected error processing chat for user_id=%s", user_id)
         raise HTTPException(status_code=500, detail="Internal server error.")
+
+
+# Voice-command clips are short; 10 MB is a generous ceiling for a <=30s recording.
+MAX_AUDIO_BYTES = 10 * 1024 * 1024
+
+
+@router.post("/transcribe", response_model=TranscribeResponse)
+@limiter.limit("15/minute")
+async def transcribe(
+    request: Request,
+    audio: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Transcribes a short recorded audio clip (webm/opus from the browser's
+    MediaRecorder) into text via Deepgram Nova-3.
+
+    This endpoint does NOT touch the database or trigger any finance action.
+    The frontend places the returned transcript into the chat input for the
+    user to review and submit through the normal POST /finance/chat flow —
+    voice is only an alternate way to fill the input box, never an auto-submit.
+    """
+    user_id = current_user.id
+    audio_bytes = await audio.read()
+
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="No audio data received.")
+    if len(audio_bytes) > MAX_AUDIO_BYTES:
+        raise HTTPException(status_code=413, detail="Audio clip too large (max 10MB).")
+
+    logger.info(
+        "Transcribe request from user_id=%s (%d bytes, %s)",
+        user_id, len(audio_bytes), audio.content_type,
+    )
+
+    try:
+        transcript = transcribe_audio(audio_bytes, audio.content_type)
+    except TranscriptionError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+    if not transcript:
+        raise HTTPException(status_code=422, detail="Could not detect any speech in the recording.")
+
+    return TranscribeResponse(transcript=transcript)
 
