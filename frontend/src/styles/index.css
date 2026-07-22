@@ -334,6 +334,22 @@ tr:hover td { background: var(--gray-50); }
 .query-bar-btn:hover:not(:disabled) { background: var(--brand-dark); }
 .query-bar-btn:disabled { opacity: .4; cursor: not-allowed; }
 
+.query-bar-wrap { position: relative; }
+.query-bar-mic-btn {
+  width: 28px; height: 28px; border-radius: var(--radius-sm);
+  background: transparent; border: none; cursor: pointer;
+  display: grid; place-items: center; color: var(--gray-400); flex-shrink: 0;
+  transition: var(--transition);
+}
+.query-bar-mic-btn:hover:not(:disabled) { color: var(--brand); }
+.query-bar-mic-btn.is-recording { color: var(--red); animation: pulse 1.2s ease-in-out infinite; }
+.query-bar-mic-btn:disabled { opacity: .4; cursor: not-allowed; }
+.query-bar-mic-error {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  font-size: 12px; color: var(--red);
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+
 .query-result-card {
   background: var(--brand-bg); border: 1px solid rgba(79,70,229,.2);
   border-radius: var(--radius-lg); padding: 20px; margin-top: 20px;
