@@ -1,0 +1,56 @@
+name: Keep Render Awake
+
+# Pings the Render free-tier service so it never idles into a spin-down.
+# Render sleeps a free web service after ~15 min of inactivity; we ping every
+# 5 min (well under the limit) to keep the container warm and avoid cold starts.
+
+on:
+  schedule:
+    # Every 5 minutes. Note: GitHub's minimum cron interval is 5 min, and
+    # scheduled runs can be delayed by several minutes under platform load.
+    - cron: "*/5 * * * *"
+  # Lets you trigger a ping by hand from the Actions tab to test it.
+  workflow_dispatch:
+
+# If a previous ping is still running, don't stack another on top of it.
+concurrency:
+  group: keep-alive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping health endpoint
+        env:
+          # Set this as a repository *variable* (Settings → Secrets and
+          # variables → Actions → Variables): name RENDER_URL, value e.g.
+          # https://finance-tracker-api.onrender.com
+          RENDER_URL: ${{ vars.RENDER_URL }}
+        run: |
+          if [ -z "$RENDER_URL" ]; then
+            echo "::error::RENDER_URL repository variable is not set."
+            echo "Add it under Settings → Secrets and variables → Actions → Variables."
+            exit 1
+          fi
+
+          # The service exposes a cheap health check at "/".
+          URL="${RENDER_URL%/}/"
+          echo "Pinging $URL"
+
+          # Retry a few times: a cold start can take 30-60s, so give it room.
+          # --max-time 90 tolerates the wake-up delay; retry covers transient 5xx.
+          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" \
+            --max-time 90 \
+            --retry 3 --retry-delay 10 --retry-all-errors \
+            "$URL") || true
+
+          echo "HTTP status: $STATUS"
+
+          # 2xx/3xx means the service is up. Anything else fails the run so it
+          # surfaces in the Actions tab instead of silently doing nothing.
+          case "$STATUS" in
+            2*|3*) echo "Service is awake." ;;
+            *)     echo "::error::Unexpected status $STATUS"; exit 1 ;;
+          esac
