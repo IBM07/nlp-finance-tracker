@@ -14,33 +14,25 @@ function getStoredTheme() {
   return stored === 'light' || stored === 'dark' ? stored : null;
 }
 
-function systemPrefersDark() {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-
 export function ThemeProvider({ children }) {
-  // null = no explicit user choice yet; CSS falls back to prefers-color-scheme
-  const [explicitTheme, setExplicitTheme] = useState(getStoredTheme);
+  // Light is the default when the user hasn't made an explicit choice;
+  // the OS's prefers-color-scheme is intentionally ignored so the site
+  // always opens in light mode until the user toggles to dark.
+  const [theme, setTheme] = useState(() => getStoredTheme() || 'light');
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (explicitTheme) {
-      root.setAttribute('data-theme', explicitTheme);
-    } else {
-      root.removeAttribute('data-theme');
-    }
-  }, [explicitTheme]);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   const toggleTheme = useCallback(() => {
-    setExplicitTheme((prev) => {
-      const current = prev || (systemPrefersDark() ? 'dark' : 'light');
-      const next = current === 'dark' ? 'light' : 'dark';
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
       localStorage.setItem(STORAGE_KEY, next);
       return next;
     });
   }, []);
 
-  const resolvedTheme = explicitTheme || (systemPrefersDark() ? 'dark' : 'light');
+  const resolvedTheme = theme;
 
   return (
     <ThemeContext.Provider value={{ theme: resolvedTheme, toggleTheme }}>
