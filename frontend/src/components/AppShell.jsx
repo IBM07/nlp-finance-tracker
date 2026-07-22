@@ -44,7 +44,7 @@ export default function AppShell({ children, onTransactionAdded }) {
             <BarChart2 size={16} color="white" />
           </div>
           <div className="sidebar-brand-text">
-            <div className="sidebar-brand-name">InvoiceFlow</div>
+            <div className="sidebar-brand-name">FinTrack</div>
             <div className="sidebar-brand-tag">Premium Finance</div>
           </div>
         </div>

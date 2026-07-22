@@ -1,12 +1,12 @@
 <div align="center">
 
-# 💬 InvoiceFlow
+# 💬 FinTrack
 
 **Talk to your money.**
 
 A full-stack, multi-user finance tracker where you add, edit, and delete transactions —
-and query your spending — entirely in plain English. No forms. No SQL. No trust in
-an LLM to touch your database directly, either — see [how it works](#-how-it-works) below.
+and query your spending — entirely in plain English, typed or spoken. No forms. No SQL.
+No trust in an LLM to touch your database directly, either — see [how it works](#-how-it-works) below.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](#-license)
 [![Last commit](https://img.shields.io/github/last-commit/IBM07/nlp-finance-tracker)](https://github.com/IBM07/nlp-finance-tracker/commits/main)
@@ -15,11 +15,13 @@ an LLM to touch your database directly, either — see [how it works](#-how-it-w
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 ![PostgreSQL](https://img.shields.io/badge/Postgres-Neon-4169E1?logo=postgresql&logoColor=white)
 ![Groq](https://img.shields.io/badge/LLM-Groq%20%7C%20gpt--oss--120b-F55036?logo=groq&logoColor=white)
+![Deepgram](https://img.shields.io/badge/Voice-Deepgram%20Nova--3-13EF93?logo=deepgram&logoColor=black)
 
 ```
 "Add 500 Zomato dinner"        → ✦ Added "Zomato dinner" · ₹500.00 · Food & Dining
 "What did I spend last week?"  → ✦ Found 12 records.
 "Delete my Zomato expense"     → ⚠ I found multiple matches. Which one did you mean?
+🎤 Speak it instead            → transcript drops into the prompt bar for you to review & send
 ```
 
 [Quickstart](#-quickstart) · [How it works](#-how-it-works) · [API](#-api-endpoints) ·
@@ -34,6 +36,7 @@ an LLM to touch your database directly, either — see [how it works](#-how-it-w
 | | |
 |---|---|
 | 🗣️ **Conversational everything** | Add, edit, delete, and query transactions from one prompt bar — not just read-only chat over a form-based write path. |
+| 🎤 **Voice input** | Tap the mic and speak your command — [Deepgram Nova-3](https://deepgram.com) transcribes it into the prompt bar. The transcript is filled in for you to review and send manually; voice never auto-submits, so a misheard amount can't silently write to your ledger. |
 | 🛡️ **LLM never writes mutative SQL** | Mutations go LLM → typed JSON → Pydantic validation → SQLAlchemy ORM. The model physically cannot emit an `UPDATE`/`DELETE` statement — see [How it works](#-how-it-works). |
 | ↩️ **10-second Undo on everything** | Every ADD/EDIT/DELETE — chat-triggered or manual — gets an optimistic UI update and a 10s Undo toast before it's final. |
 | 🤔 **Disambiguation, not guessing** | "Delete my Zomato expense" with 3 matching entries → a picker, not a coin flip. |
@@ -73,6 +76,11 @@ flowchart TD
   scoped `SELECT` (no chaining, no comments-as-injection, no DDL, no unknown tables).
 - Ambiguous EDIT/DELETE targets (multiple fuzzy matches) return `CONFIRM_NEEDED` with candidates
   instead of guessing — nothing is mutated until the user picks one.
+- **Voice** sits *in front of* this pipeline, not inside it. The browser records a short clip via
+  `MediaRecorder`, `POST /finance/transcribe` proxies it to Deepgram Nova-3 (server-side — the key
+  never reaches the browser), and the returned text is dropped into the prompt bar. From there it's
+  an ordinary typed prompt: the user still reviews it and hits send, so voice inherits every
+  guarantee above and adds no new mutation path.
 
 <details>
 <summary><b>Why not just let the LLM write safer, sandboxed SQL?</b></summary>
@@ -87,9 +95,9 @@ from that surface. Full reasoning in `prod_ready_plan/nlp_transaction_feature_pl
 
 **Backend** — FastAPI · SQLAlchemy + Alembic · PostgreSQL ([Neon](https://neon.tech), SQLite for local dev)
 · JWT auth with refresh rotation/revocation · Groq (`gpt-oss-120b`) for intent extraction & NL→SQL
-· `slowapi` rate limiting
+· [Deepgram](https://deepgram.com) Nova-3 for speech-to-text · `slowapi` rate limiting
 
-**Frontend** — React + Vite · React Router · Axios · Recharts
+**Frontend** — React + Vite · React Router · Axios · Recharts · native `MediaRecorder` for voice capture
 
 <details>
 <summary><b>📁 Project structure</b></summary>
@@ -102,9 +110,10 @@ nlp-finance-tracker/
 │   │   ├── finance/
 │   │   │   ├── intent.py     # LLM intent extraction (QUERY/ADD/EDIT/DELETE) — the security boundary
 │   │   │   ├── llm.py        # NL → SQL generation for QUERY intent
+│   │   │   ├── stt.py        # Deepgram Nova-3 speech-to-text (voice input)
 │   │   │   ├── sql_guard.py  # Validates/blocks LLM-generated SQL (QUERY path only)
 │   │   │   ├── service.py    # Business logic: create/update/delete, audit logging
-│   │   │   └── routes.py     # /finance/chat, /finance/entries/{id}, /finance/query, ...
+│   │   │   └── routes.py     # /finance/chat, /finance/transcribe, /finance/entries/{id}, ...
 │   │   ├── middleware/     # rate limiting
 │   │   ├── config.py       # env-var driven settings (pydantic-settings)
 │   │   ├── database.py
@@ -118,7 +127,7 @@ nlp-finance-tracker/
     ├── src/
     │   ├── api/             # axios client
     │   ├── components/
-    │   │   ├── ChatInput.jsx            # unified prompt bar → POST /finance/chat
+    │   │   ├── ChatInput.jsx            # unified prompt bar (+ 🎤 mic) → /finance/chat, /finance/transcribe
     │   │   ├── AIActionFeedback.jsx     # Undo toast (10s countdown)
     │   │   ├── DisambiguationPanel.jsx  # candidate picker for ambiguous edit/delete
     │   │   ├── AddTransactionModal.jsx  # manual add + edit mode
@@ -144,7 +153,7 @@ venv\Scripts\activate        # Windows
 # source venv/bin/activate   # macOS/Linux
 pip install -r requirements.txt
 
-cp .env.example .env         # fill in GROQ_API_KEY, JWT_SECRET, etc.
+cp .env.example .env         # fill in GROQ_API_KEY, DEEPGRAM_API_KEY, JWT_SECRET, etc.
 alembic upgrade head         # run DB migrations
 
 uvicorn app.main:app --reload
@@ -176,6 +185,7 @@ App at `http://localhost:5173`
 | Method | Route | Description | Rate limit |
 |---|---|---|---|
 | `POST` | `/finance/chat` | Unified conversational endpoint — classifies QUERY/ADD/EDIT/DELETE and executes | 10/min |
+| `POST` | `/finance/transcribe` | Voice input — transcribes an uploaded audio clip to text via Deepgram Nova-3 (no DB access; the transcript is submitted separately through `/finance/chat`) | 15/min |
 | `POST` | `/finance/query` | Legacy read-only NL→SQL query (kept for backwards compatibility) | 30/min |
 | `POST` | `/finance/entries` | Manually create a transaction | 60/min |
 | `PUT` | `/finance/entries/{id}` | Manually update a transaction (also used by the Undo flow) | 60/min |
@@ -198,6 +208,7 @@ cross-user data is ever reachable through any of them.
 | Variable | Description |
 |---|---|
 | `GROQ_API_KEY` | Groq API key for LLM-powered intent extraction and query parsing |
+| `DEEPGRAM_API_KEY` | Deepgram API key for voice-input transcription (Nova-3). Required — the app will not start without it |
 | `DATABASE_URL` | Postgres (Neon) or SQLite connection string |
 | `JWT_SECRET` | Signs access/refresh tokens — generate with `python -c "import secrets; print(secrets.token_hex(32))"` |
 | `JWT_ALGORITHM` | JWT signing algorithm (default `HS256`) |
@@ -237,8 +248,10 @@ passes is what ships). Covers:
 
 1. Push this repo to GitHub.
 2. On Render: **New → Blueprint**, point at this repo.
-3. Set `GROQ_API_KEY`, `DATABASE_URL` (Neon connection string), `JWT_SECRET`, and
-   `ALLOWED_ORIGINS` (your deployed frontend URL) in the Render dashboard — never in source.
+3. Set `GROQ_API_KEY`, `DEEPGRAM_API_KEY`, `DATABASE_URL` (Neon connection string), `JWT_SECRET`,
+   and `ALLOWED_ORIGINS` (your deployed frontend URL) in the Render dashboard — never in source.
+   > **Note:** the frontend must be served over HTTPS (Cloudflare Pages/Vercel/Netlify all are) —
+   > browsers only grant microphone access in a secure context, so voice input won't work over plain HTTP.
 4. Render runs `alembic upgrade head` before starting `uvicorn`, so migrations always apply
    before the new version serves traffic.
 
@@ -254,6 +267,9 @@ to any static host (Cloudflare Pages, Vercel, Netlify).
   exactly like a nonexistent one, so an ID response never leaks whether it belongs to someone else.
 - EDIT patches are restricted to an explicit field allowlist, enforced twice: once at the LLM
   output boundary, once again immediately before the DB write.
+- **Voice adds no new write surface.** `/finance/transcribe` only returns text — it never touches the
+  database. The Deepgram key stays server-side (the browser talks only to our backend), and the
+  transcript re-enters through the same reviewed `/finance/chat` path as typed input.
 - All secrets load from environment variables — nothing hardcoded in source.
 - JWT access tokens are short-lived; refresh tokens support rotation and revocation.
 - CORS origins are configurable per environment — no wildcard in production.

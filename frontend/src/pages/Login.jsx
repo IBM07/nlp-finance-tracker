@@ -30,7 +30,7 @@ export default function Login() {
           <div className="auth-brand-icon">
             <BarChart2 size={20} color="white" />
           </div>
-          <span className="auth-brand-name">InvoiceFlow</span>
+          <span className="auth-brand-name">FinTrack</span>
         </div>
 
         <h1 className="auth-heading">Welcome back</h1>
@@ -102,7 +102,7 @@ export default function Login() {
         <div className="auth-testimonial">
           <div className="auth-testimonial-quote">"</div>
           <p className="auth-testimonial-text">
-            "InvoiceFlow has completely transformed how we track our burn. It is the gold standard."
+            "FinTrack has completely transformed how we track our burn. It is the gold standard."
           </p>
           <div className="auth-testimonial-author">
             <div className="auth-testimonial-avatar">SC</div>

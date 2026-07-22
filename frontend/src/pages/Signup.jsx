@@ -39,7 +39,7 @@ export default function Signup() {
           <div className="auth-brand-icon">
             <BarChart2 size={20} color="white" />
           </div>
-          <span className="auth-brand-name">InvoiceFlow</span>
+          <span className="auth-brand-name">FinTrack</span>
         </div>
 
         <h1 className="auth-heading">Create an account</h1>
