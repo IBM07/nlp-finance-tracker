@@ -27,6 +27,8 @@ No trust in an LLM to touch your database directly, either — see [how it works
 [Quickstart](#-quickstart) · [How it works](#-how-it-works) · [API](#-api-endpoints) ·
 [Testing](#-testing) · [Deployment](#-deployment) · [Security](#-security-model)
 
+**🔗 Live demo:** [nlp-finance-tracker.pages.dev](https://nlp-finance-tracker.pages.dev/)
+
 </div>
 
 ---
@@ -245,6 +247,8 @@ passes is what ships). Covers:
 > logging — is exercised against real infrastructure, not a stub.
 
 ## 🌍 Deployment
+
+**Live:** [nlp-finance-tracker.pages.dev](https://nlp-finance-tracker.pages.dev/) (frontend on Cloudflare Pages, backend on Render)
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
